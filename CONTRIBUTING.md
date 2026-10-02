@@ -1,13 +1,18 @@
 # Contributing to this repository
 
-## What does it mean to be "done"?
+Any artifact related to Layered Haskell should be accessible from this repository. 
 
-There are currently no auxiliary checks on commits. 
-It is your responsibility to ensure that no errors are present, and that documentation (comments etc.) is up-to-date and reflects the implementation.
+## What should I know before contributing?
+
+There are currently _no_ auxiliary checks on commits. 
+It is your responsibility to ensure that no errors are present, and that documentation (comments etc.) is up to date and reflects the implementation.
 If there are tests that may be affected by your commit, you should either verify that they pass or update them.
 
-## Where are contributions recorded?
+Ensure that your commit messages are succinct, informative, and be free of grammatical mistakes.
+In many cases, it will be appropriate to create a pull request and describe your changes in more detail.
 
-Anything related to this project will lie in this repository. 
-Commits will represent contributions and "accepted work".
-Tasks will be appropriately divided among contributors to ensure that the workload is not imbalanced.
+## Who should I contact if I have questions?
+
+```
+Hangil Kim   <kimhang[at]oregonstate.edu>
+```
