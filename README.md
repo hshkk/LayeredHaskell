@@ -1,2 +1,2 @@
 # LayeredHaskell
-Design and implementation of a functional programming language
+Design and implementation of a layered functional programming language
