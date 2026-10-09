@@ -33,9 +33,11 @@ Pull requests and issues are held to the same standard.
 
 ### For capstone project team members
 
-Each member should be an author of at least one merged pull request or accepted deliverable per sprint. Responsibilities will be delegated at sprint planning via an issue assigned to them. The work will be split such that no issue exceeds 2-3 days. Reviews are due within 2 days, and any unreviewed work should be discussed in meetings.
+#### Contribution Norm
+Each member should be an author of at least one merged pull request or accepted deliverable per sprint. Responsibilities will be delegated at sprint planning via an issue assigned to them. The work will be split such that no issue exceeds a week. Reviews are due within 2 days, and any unreviewed work should be discussed in meetings.
 
-Accepted work is defined as a contribution that passes all tests, receives approval from at least one other reviewer, and is merged into `main`. A non-programmatic contribution (such as documentation) is considered accepted if it has been reviewed by a teammate and linked to the issue.
+#### Definition of Done
+A deliverable is considered accepted if it passes all tests, receives approval from at least one other reviewer, and is merged into `main`. A non-programmatic deliverable (such as documentation or research) is considered accepted if it has been reviewed by a teammate and linked to the issue. Due to the multifaceted nature of this project, deliverables can take both forms.
 
 Should a team member encounter difficulties in delivering accepted work by mid-sprint, the team will reassign or resize the task.
 
@@ -44,3 +46,5 @@ Should a team member encounter difficulties in delivering accepted work by mid-s
 ```
 Hangil Kim   <kimhang[at]oregonstate.edu>
 ```
+
+Capstone project team members can expect a response within a day.
