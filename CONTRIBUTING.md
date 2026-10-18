@@ -37,7 +37,9 @@ Pull requests and issues are held to the same standard.
 Each member should be an author of at least one merged pull request or accepted deliverable per sprint. Responsibilities will be delegated at sprint planning via an issue assigned to them. The work will be split such that no issue exceeds a week. Reviews are due within 2 days, and any unreviewed work should be discussed in meetings.
 
 #### Definition of Done
-A deliverable is considered accepted if it passes all tests, receives approval from at least one other reviewer, and is merged into `main`. A non-programmatic deliverable (such as documentation or research) is considered accepted if it has been reviewed by a teammate and linked to the issue. Due to the multifaceted nature of this project, deliverables can take both forms.
+A deliverable is considered accepted if it passes all tests (per the CI workflow), receives approval from at least one other reviewer, and is merged into `main`. A non-programmatic deliverable (such as documentation or research) is considered accepted if it has been reviewed by a teammate and linked to the issue. Due to the multifaceted nature of this project, deliverables can take both forms. 
+
+For additional sanity checks, the [Haskell Language Server](https://github.com/haskell/haskell-language-server) automatically integrates [`HLint`](https://github.com/ndmitchell/hlint), which is a linter for Haskell that helps eliminate redundancies and simplify programs. Dependency vulnerabilities can be checked using the [`cabal-audit`](https://github.com/MangoIV/cabal-audit) tool. Members should periodically check for vulnerabilities, especially when they add new dependencies.
 
 Should a team member encounter difficulties in delivering accepted work by mid-sprint, the team will reassign or resize the task.
 
