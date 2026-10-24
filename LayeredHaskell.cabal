@@ -62,7 +62,6 @@ library
     -- Modules exported by the library.
     exposed-modules:  
         LH.Control.Superimposable
-        LH.Data.Structure
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -72,8 +71,10 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    
-        , base       ^>=4.18.3.0
-        , containers ^>=0.6.7
+        , base        ^>=4.18.3.0
+        , containers  ^>=0.6.7
+        , happy-lib   ^>=2.2
+        , haskell-src ^>=1.0.4
 
     -- Directories containing source files.
     hs-source-dirs:   src
