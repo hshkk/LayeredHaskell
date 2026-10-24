@@ -62,8 +62,8 @@ library
     -- Modules exported by the library.
     exposed-modules:  
         LH.Control.Superimposable
-        LH.Data.Assoc
         LH.Data.Dependency
+        LH.Data.Feature
 
     -- Modules included in this library but not exported.
     -- other-modules:

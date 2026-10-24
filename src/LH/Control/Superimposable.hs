@@ -9,7 +9,7 @@ import Prelude hiding (mod, rem)
 -- import qualified Happy.Frontend.AbsSyn as Happy
 import qualified Language.Haskell.Syntax as Haskell
 
-infixr 6 -->
+infixl 6 -->
 
 class Superimposable a where
     (-->) :: a -> a -> a

@@ -12,7 +12,7 @@ import System.Exit (die)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import LH.Data.Assoc
+import LH.Data.Feature
 import LH.Data.Dependency
 
 main :: IO ()
@@ -21,7 +21,7 @@ main = do
     reg <- registry
         [ ("E", ["features/E.hs"], [], [])
         , ("B", ["features/B.hs"], cnf (Has "E"), [])
-        , ("D", ["features/B.hs"], [], [])
+        , ("D", ["features/D.hs"], cnf (Has "E"), [])
         ]
     case merge reg (Set.fromList names) of
         Left err   -> die err
@@ -38,12 +38,12 @@ parseFile file = do
             die (file ++ "@" ++ show (srcLine src') ++ ":" ++ show (srcColumn src') ++ " - " ++ msg)
 
 -- (..., files, dependsOn, impliedBy)
-registry :: [(AssocName, [FilePath], [[AssocName]], [[AssocName]])] -> IO Registry
+registry :: [(FeatureName, [FilePath], [[FeatureName]], [[FeatureName]])] -> IO Registry
 registry infos = fmap Map.fromList (mapM reify infos)
     where
         reify (name, files, deps, imps) = do
             mods <- mapM parseFile files
-            return (name, Assoc 
+            return (name, Feature 
                 { modules = Map.fromList [(nameOf mod, mod) | mod <- mods]
                 , dependsOn = deps
                 , impliedBy = imps })
