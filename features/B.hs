@@ -11,12 +11,16 @@ data Expr
     | LHsMul  Expr Expr
     | LHsOr   Expr Expr
     | LHsAnd  Expr Expr
+    | LHsIf   Expr Expr Expr
+    | LHsEq   Expr Expr
+    deriving Eq
 
 data Val
   = LHsVInt Int
   | LHsVBool Bool
+  deriving (Eq, Show)
 
-type Env = Map.Map String Val
+type Env = Map.Map Var Val
 
 eval :: Env -> Expr -> Val
 eval _ (LHsInt  n) = LHsVInt  n
@@ -39,6 +43,11 @@ eval env (LHsAnd e1 e2) =
     let b = evalBool env e1
         c = evalBool env e2
     in LHsVBool (b && c)
+eval env (LHsIf i t e) =
+    let b = evalBool env i in
+    if b then eval env t else eval env e
+
+eval env (LHsEq e1 e2) = LHsVBool (eval env e1 == eval env e2)
 
 evalInt :: Env -> Expr -> Int
 evalInt env e = case eval env e of

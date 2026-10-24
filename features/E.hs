@@ -4,15 +4,24 @@ import Data.Map (Map)
 
 import qualified Data.Map as Map
 
+type Var = String
+type Con = String
+
+data Decl
+    = LHsEquation Var Expr
+    deriving Eq
+
 data Expr
-    = LHsVariable String
-    | LHsConstructor String
-    | LHsLet String Expr Expr
+    = LHsVariable Var
+    | LHsConstructor Con
+    | LHsLet Var Expr Expr
     | LHsApp Expr Expr
+    deriving Eq
 
-data Val = LHsVConstructor String [Val]
+data Val = LHsVConstructor Con [Val]
+    deriving (Eq, Show)
 
-type Env = Map String Val
+type Env = Map Var Val
 
 eval :: Env -> Expr -> Val
 eval env (LHsVariable x) =
