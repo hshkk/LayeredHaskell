@@ -97,8 +97,10 @@ executable LayeredHaskell
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.18.3.0,
-        LayeredHaskell
+        , base        ^>=4.18.3.0
+        , filepath    ^>=1.4.301
+        , haskell-src ^>=1.0.4
+        , LayeredHaskell
 
     -- Directories containing source files.
     hs-source-dirs:   src-exe

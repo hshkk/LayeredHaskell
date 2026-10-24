@@ -1,37 +1,70 @@
-{-# LANGUAGE FlexibleContexts, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 module LH.Control.Superimposable where
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import Data.List (nub)
 import Prelude hiding (mod, rem)
 
-import qualified Happy.Frontend.AbsSyn as Happy
+-- import qualified Happy.Frontend.AbsSyn as Happy
 import qualified Language.Haskell.Syntax as Haskell
 
 infixr 6 -->
 
 class Superimposable a where
     (-->) :: a -> a -> a
+    left --> _ = left
+
+instance Superimposable a => Superimposable (Maybe a) where
+    Just left --> Just right = Just (left --> right)
+    left --> _ = left
+
+-- used for the import list in a module, where the Bool is "hiding"
+instance Superimposable a => Superimposable (Bool, a) where
+    (False, left) --> (False, right) = (False, left --> right)
+    left --> _ = left
+
+instance Superimposable Haskell.HsQName
+instance Superimposable Haskell.HsCName
+instance Superimposable Haskell.HsConDecl
 
 instance Superimposable Haskell.HsModule where
     Haskell.HsModule src mod1 exps1 imps1 decls1 --> Haskell.HsModule _ mod2 exps2 imps2 decls2 
-        | mod1 == mod2 = Haskell.HsModule src mod1 (liftA2 (-->) exps1 exps2) (imps1 --> imps2) (decls1 --> decls2)
+        | mod1 == mod2 = Haskell.HsModule src mod1 (exps1 --> exps2) 
+                                                   (imps1 --> imps2) 
+                                                   (concatMap flatten decls1 --> concatMap flatten decls2)
         | otherwise    = error "Cannot merge differing modules"
+        where
+            -- flattens f, g :: a into f :: a and g :: a
+            flatten :: Haskell.HsDecl -> [Haskell.HsDecl]
+            flatten (Haskell.HsTypeSig src' names ty) 
+                = [Haskell.HsTypeSig src' [name] ty | name <- names]
+            flatten (Haskell.HsInfixDecl src' assoc fix ops) 
+                = [Haskell.HsInfixDecl src' assoc fix [op] | op <- ops]
+            flatten decl = [decl]
 
 instance Superimposable Haskell.HsExportSpec where
-    h1 --> h2 = undefined
+    Haskell.HsEThingWith name1 args1 --> Haskell.HsEThingWith name2 args2 
+        | name1 == name2 = Haskell.HsEThingWith name1 (nub (args1 ++ args2))
+    left --> _ = left
 
 instance Superimposable Haskell.HsImportSpec where
-    h1 --> h2 = undefined
+    Haskell.HsIThingWith name1 args1 --> Haskell.HsIThingWith name2 args2 
+        | name1 == name2 = Haskell.HsIThingWith name1 (args1 --> args2)
+    left --> _ = left
 
 instance Superimposable Haskell.HsImportDecl where
-    h1 --> h2 = undefined
+    left --> right = left { Haskell.importSpecs = Haskell.importSpecs left --> Haskell.importSpecs right }
 
 instance Superimposable Haskell.HsDecl where
-    h1 --> h2 = undefined
+    Haskell.HsDataDecl src cxt name1 tyvs cons1 names1 --> Haskell.HsDataDecl _ _ name2 _ cons2 names2 
+        | name1 == name2 = Haskell.HsDataDecl src cxt name1 tyvs (cons1 --> cons2) (names1 --> names2)
+    Haskell.HsFunBind lefts --> Haskell.HsFunBind rights
+        | length arities == 1 = Haskell.HsFunBind (lefts --> rights)
+        where arities = nub [ length pats | Haskell.HsMatch _ _ pats _ _ <- lefts ++ rights ]
+    left --> _ = left
 
-instance Superimposable Haskell.HsConDecl where
-    h1 --> h2 = undefined
+instance Superimposable Haskell.HsMatch
 
 -- instance Superimposable Happy.BookendedAbsSyn where
 --     h1 --> h2 = undefined
@@ -39,6 +72,20 @@ instance Superimposable Haskell.HsConDecl where
 class Identifiable a where
     type Identifier a
     identify :: a -> Identifier a
+
+instance Identifiable Haskell.HsQName where
+    type Identifier Haskell.HsQName = Haskell.HsQName
+    identify = id
+
+instance Identifiable Haskell.HsConDecl where
+    type Identifier Haskell.HsConDecl = Haskell.HsName
+    identify (Haskell.HsConDecl _ name _) = name
+    identify (Haskell.HsRecDecl _ name _) = name
+
+instance Identifiable Haskell.HsCName where
+    type Identifier Haskell.HsCName = Haskell.HsName
+    identify (Haskell.HsVarName name) = name
+    identify (Haskell.HsConName name) = name
 
 data HsExportSpecIdentifier
     = HsExpNameI   Haskell.HsQName -- a variable, type, or class
@@ -110,6 +157,10 @@ instance Identifiable Haskell.HsDecl where
     identify (Haskell.HsInfixDecl _ _ _ [Haskell.HsVarOp name]) = HsIfxI name
     identify (Haskell.HsInfixDecl _ _ _ [Haskell.HsConOp name]) = HsIfxI name
     identify (Haskell.HsInfixDecl _ _ _ _)  = error "Cannot identify multiple names in fixity declaration"
+
+instance Identifiable Haskell.HsMatch where
+    type Identifier Haskell.HsMatch = String
+    identify (Haskell.HsMatch _ _ pats _ _) = show pats
 
 instance (Identifiable a, Ord (Identifier a), Superimposable a) => Superimposable [a] where
     lefts --> rights = sup ++ rem
