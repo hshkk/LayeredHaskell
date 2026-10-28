@@ -61,18 +61,18 @@ data Decl
 
 %name genParser
 
-%tokenType { Token }
+%tokentype { Token }
 %token
     varid   { TVarid $$ }
     conid   { TConid $$ }
     integer { TInt $$ }
     "let"   { TLet }
-    "("     { TOParen }
-    ")"     { TCParen }
-    ";"     { TSemicolon }
-    "="     { TAssign }
-    "{"     { TOBrace }
-    "}"     { TCBrace }
+    '('     { TOParen }
+    ')'     { TCParen }
+    ';'     { TSemicolon }
+    '='     { TAssign }
+    '{'     { TOBrace }
+    '}'     { TCBrace }
     "in"    { TIn }
     '_'     { TUnderscore }
     int     { TInt }
