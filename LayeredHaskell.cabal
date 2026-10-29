@@ -60,10 +60,7 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  
-        LH.Control.Superimposable
-        LH.Data.Dependency
-        LH.Data.Feature
+    exposed-modules:
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -73,10 +70,9 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    
-        , base        ^>=4.18.3.0
-        , containers  ^>=0.6.7
-        , happy-lib   ^>=2.2
-        , haskell-src ^>=1.0.4
+        , array ^>=0.5.8
+        , base  ^>=4.18.3.0
+        , text  ^>=2.0.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -100,9 +96,6 @@ executable LayeredHaskell
     -- Other library packages from which modules are imported.
     build-depends:
         , base        ^>=4.18.3.0
-        , containers  ^>=0.6.7
-        , filepath    ^>=1.4.301
-        , haskell-src ^>=1.0.4
         , LayeredHaskell
 
     -- Directories containing source files.
@@ -135,5 +128,5 @@ test-suite LayeredHaskell-test
 
     -- Test dependencies.
     build-depends:
-        base ^>=4.18.3.0,
-        LayeredHaskell
+        , base ^>=4.18.3.0
+        , LayeredHaskell

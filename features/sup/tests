@@ -1,5 +1,0 @@
--- I 5 == I 5
-eval M.empty (LHsEq (LHsApp (LHsConstructor "I") (LHsInt 5)) (LHsApp (LHsConstructor "I") (LHsInt 5)))
-
--- I 5 == I 7
-eval M.empty (LHsEq (LHsApp (LHsConstructor "I") (LHsInt 5)) (LHsApp (LHsConstructor "I") (LHsInt 7)))
