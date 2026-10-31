@@ -13,7 +13,17 @@ This module provides the parser monad for Layered Haskell.
 Consequently, it includes definitions for a custom Alex wrapper and a representation of errors and state.
 -}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module LH.Text.Parser.Monad where
+{-# LANGUAGE OverloadedStrings #-}
+module LH.Text.Parser.Monad (
+    -- * A wrapper for Alex
+    AlexInput (..), alexGetByte, alexInputPrevChar,
+    -- * Parser monad
+    LHsParser (..), runLHsParser,
+    -- ** Parser state
+    LHsState (..), getInput, setInput,
+    -- ** Errors
+    LHsError (..), renderError
+    ) where
 
 import Control.Monad.Except       (MonadError)
 import Control.Monad.State.Strict 
@@ -24,23 +34,27 @@ import Data.Char (ord)
 import Data.Text (Text)
 import Data.Word (Word8)
 
+import Errata
+import Errata.Styles
+
 import qualified Data.ByteString    as Byte
 import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Text.Lazy     as LazyText
 
 import LH.Text.Token (LHsPos (..))
 
 -------------------------------------------------------------------------------
--- * A wrapper for Alex
+-- Definitions for an Alex wrapper
 -- (i.e., a set of definitions that customize how the lexer Alex generates will 
 --  interact with input and output.)
 
 -- | A representation of the current state of the input stream being tokenized.
 data AlexInput = AlexInput
-    { aiPos   :: !LHsPos
-    , aiPrev  :: !Char
-    , aiBytes :: [Word8]
-    , aiText  :: !Text
+    { aiPos   :: !LHsPos   -- ^ The current position in the source.
+    , aiPrev  :: !Char     -- ^ The previous character read (used only in the definition of 'alexInputPrevChar').
+    , aiBytes :: [Word8]   -- ^ The remaining input represented as a sequence of bytes.
+    , aiText  :: !Text     -- ^ The remaining input represented as 'Text'.
     }
 
 -- | Reads the next character from the input and advances the input state.
@@ -70,12 +84,11 @@ alexGetByte a = do
     b:bs    <- return (utf8 c)
     return (b, a' { aiBytes = bs })
 
--- | Returns the character previously consumed from the input.
+-- | Returns the character previously read from the input.
 alexInputPrevChar :: AlexInput -> Char
 alexInputPrevChar = aiPrev
 
 -------------------------------------------------------------------------------
--- * Parser monad
 -- Definitions for a parser monad with basic error handling 
 
 -- | A parser monad.
@@ -87,7 +100,8 @@ runLHsParser :: LHsParser a -> Text -> Either LHsError a
 runLHsParser (LHsParser m) src = 
     evalStateT m (LHsState (AlexInput (LHsPos 1 1) '\n' [] src) [])
 
--- ** Parser state
+-------------------------------------------------------------------------------
+-- Parser state
 
 -- | The parser state.
 data LHsState = LHsState
@@ -103,10 +117,45 @@ getInput = gets stInput
 setInput :: AlexInput -> LHsParser ()
 setInput inp = modify (\st -> st { stInput = inp })
 
--- ** Errors
+-------------------------------------------------------------------------------
+-- Errors
 
 -- | An error.
 data LHsError
     = LexicalError    !LHsPos !Text -- ^ A lexical error emitted by Alex.
     | UnclosedComment !LHsPos       -- ^ An unclosed multi-line comment error emitted by Alex.
     deriving (Eq, Show)
+
+-- | Renders a 'LHsError' as a message referencing the source text.
+--
+--   Note that for 'renderError' to produce expected output, 
+--   the 'Text' argument must be the same source text that was given to the lexer (namely via 'LH.Text.Lexer.scanTokens'),
+--   otherwise the positions will not line up.
+renderError :: FilePath   -- ^ The filepath of the source text. 
+            -> Text       -- ^ The source text itself.
+            -> LHsError   -- ^ An error.
+            -> Text
+renderError file src err = LazyText.toStrict (prettyErrors src [toErrata file err])
+ 
+-- | Builds the message corresponding to a 'LHsError'.
+toErrata :: FilePath -> LHsError -> Errata
+toErrata file (LexicalError pos bad) =
+    errataSimple
+        (Just ("Lexical error: unexpected `" <> bad <> "`"))
+        (underline file pos (Text.length bad) "this is not a valid token")
+        Nothing
+toErrata file (UnclosedComment pos) =
+    errataSimple
+        (Just "Unclosed comment")
+        (underline file pos 2 "this comment is never closed")
+        Nothing
+ 
+-- | Underlines a number of characters on a single line with a label, starting at a given position.
+underline :: FilePath   -- ^ The filepath of the source text.
+          -> LHsPos     -- ^ The starting position.
+          -> Int        -- ^ The number of characters to underline from that position.
+          -> Text       -- ^ A label.
+          -> Block
+underline file (LHsPos l c) len label =
+    blockSimple fancyRedStyle fancyRedPointer file Nothing
+        (l, c, c + len, Just label) Nothing

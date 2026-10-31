@@ -29,7 +29,6 @@ import LH.Text.Parser.Monad
 import LH.Text.Token
 }
 
--- ASCII-only
 %encoding "latin1"
 
 -------------------------------------------------------------------------------
@@ -78,7 +77,7 @@ type Action = LHsPos -> Text -> LHsParser (Maybe LHsToken)
 
 -- | Lifts a 'LHsToken' into an 'Action'.
 token :: LHsToken -> Action
-token t _ _ = return (Just t)
+token tok _ _ = return (Just tok)
 
 -- | Lifts a function taking an identifier 
 --   (namely, the constructors 'LHsTkVar' and 'LHsTkCon') into an 'Action'.
@@ -96,7 +95,7 @@ closeComment _ _ = Nothing <$ modify (\st -> st { stComments = drop 1 (stComment
 -------------------------------------------------------------------------------
 -- Lexical tokenization
 
--- | Scans a _single_ 'LHsToken' from the input, producing a 'LHsLexeme'.
+-- | Scans a /single/ 'LHsToken' from the input, producing a 'LHsLexeme'.
 scanToken :: LHsParser LHsLexeme
 scanToken = do
     LHsState inp com <- get
@@ -112,7 +111,7 @@ scanToken = do
             setInput inp'
             act pos (Text.take len (aiText inp)) >>= maybe scanToken (return . LHsLexeme pos)
 
--- | Tokenizes the _entirety_ of the input, producing a (potential) list of 'LHsLexeme's.
+-- | Tokenizes the /entirety/ of the input, producing a (potential) list of 'LHsLexeme's.
 scanTokens :: Text -> Either LHsError [LHsLexeme]
 scanTokens = runLHsParser scan
     where
