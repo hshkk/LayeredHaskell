@@ -12,9 +12,11 @@ Functional languages can be somewhat vexing for novices due to complicated error
 ## Non-Functional Requirements
 > **NFR1:** A language feature is enabled or disabled via a single, clearly-documented command or input.
 
-> **NFR3:** A language feature is ideally implemented via a single change to the implementation structure. In other words, the addition of one feature should, in general, not incur several changes across multiple files.
+> **NFR2:** A language feature is ideally implemented via a single change to the implementation structure. In other words, the addition of one feature should, in general, not incur several changes across multiple files.
 
 ## Constraints
 > **C1:** Ideally executable without installation of Haskell or GHC on a local machine. Alternatively, executable on the ENGR servers.
 
 > **C2:** Any program in Layered Haskell should also be a valid Haskell program. This restricts the syntax rules of our language, and forces us to implement layout.
+
+> **C3:** The implementation of Layered Haskell should minimize redundancy as much as possible. This prevents, for instance, a monolithic implementation that may lead to many non-trivial changes across many files. Thus, this constraint is related to **NFR2**.
