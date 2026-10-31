@@ -61,6 +61,9 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        LH.Text.Lexer
+        LH.Text.Token
+        LH.Text.Parser.Monad
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -70,9 +73,14 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    
-        , array ^>=0.5.8
-        , base  ^>=4.18.3.0
-        , text  ^>=2.0.2
+        , array      ^>=0.5.8
+        , base       ^>=4.18.3.0
+        , bytestring ^>=0.11.5
+        , mtl        ^>=2.3.1
+        , text       ^>=2.0.2
+
+    build-tool-depends:
+        , alex:alex  ^>=3.2.7.4
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -112,7 +120,8 @@ test-suite LayeredHaskell-test
     default-language: Haskell2010
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:
+        LH.Test.Text.Lexer
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -124,9 +133,11 @@ test-suite LayeredHaskell-test
     hs-source-dirs:   test
 
     -- The entrypoint to the test suite.
-    main-is:          Main.hs
+    main-is:          LH/Test/Main.hs
 
     -- Test dependencies.
     build-depends:
-        , base ^>=4.18.3.0
+        , base  ^>=4.18.3.0
+        , HUnit ^>=1.6.2.0
         , LayeredHaskell
+        , text  ^>=2.0.2
