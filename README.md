@@ -1,29 +1,30 @@
-# LayeredHaskell
-Design and implementation of a layered functional programming language.
+# Layered Haskell
+**Layered Haskell** is a _layered_ functional language in which users can enable and disable various language features at will. 
+The modularity of Layered Haskell enables language variants that support a gentle introduction to functional programming for novices while also providing a means for exploring language extensions.
+
+> **Contribution guidelines:** [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+> **License:** [MIT](./LICENSE)
 
 # Installation
 
-Install [Cabal](https://www.haskell.org/cabal/) of at least version 4.18.3.0 and
-up to but excluding 4.19. If a newer version is already installed, use the
-`--allow-newer` flag when running Cabal.
-
-Download the repository and `cd LayeredHaskell`.
-
-Run `cabal update` to refresh your local package list.
-
-Run `cabal build` to build the project, and `cabal run` to run the project. As
-of now this local executable is the recommended form of installation.
+Clone the repository and execute `cd LayeredHaskell`.
 
 # Usage
 
-From the project directory, run `cabal run`.
+This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for Haskell libraries and programs. The current project has been tested against version 3.14.2.0. If a newer version is already installed, one may try passing the `--allow-newer` flag into the `cabal` executable.
 
-The project is in early development, and currently has no usable components.
+Some useful commands are as follows.
 
-# Contributing
+| Command  | What it does |
+| -------- | ------- |
+| `cabal update`  | Refreshes the local list of known packages from [Hackage](https://hackage.haskell.org/), the central package archive for Haskell. |
+| `cabal build` | Compiles libraries and executables within the current project. |
+| `cabal run`  | Compiles and executes the project's main executable. |
 
-Contribution instructions located in [CONTRIBUTING.md](./CONTRIBUTING.md).
+For most, invoking `cabal update` then `cabal run` will suffice: it will automatically update and build the prerequisite libraries and executables.
 
-# License
+## Disclaimer
 
-[MIT](./LICENSE)
+The project is in early development; many aspects of the implementation have not yet been finalized. User discretion is advised.
+
