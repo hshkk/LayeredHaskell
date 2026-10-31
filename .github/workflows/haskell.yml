@@ -42,3 +42,33 @@ jobs:
       run: cabal build --enable-tests --enable-benchmarks all
     - name: Run tests
       run: cabal test all
+    
+    - name: Build documentation
+      if: github.event_name == 'push'
+      run: |
+        rm -rf dist-newstyle/build/*/ghc-*/*/doc
+        cabal haddock all --haddock-hyperlink-source --haddock-quickjump
+        mkdir _site
+        DOCDIR=$(dirname "$(find dist-newstyle -path '*/doc/html/*/index.html' | head -n 1)")
+        cp -r "$DOCDIR"/. _site/
+
+    - name: Upload documentation
+      if: github.event_name == 'push'
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: _site
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
