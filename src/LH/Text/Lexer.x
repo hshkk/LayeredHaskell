@@ -42,11 +42,17 @@ $idchar    = [A-Z a-z 0-9 \_ \']
 $symbol    = [\! \# \$ \% \& \* \+ \. \/ \< \= \> \? \@ \\ \^ \| \- \~ \:]
 $nonsymbol = . # $symbol
 
+-------------------------------------------------------------------------------
+-- Rules
+
 tokens :-
+
+-- "0":       The default state of the lexer.
+-- "comment": Entered when a multi-line comment starts, exited only when all open multi-line comments end.
 
 <0> {
     $white+                   ;                     -- Whitespace is ignored entirely.
-    "--" \-* ($nonsymbol .*)? ;                     -- The content of single-line comments are also ignored entirely.
+    "--" \-* ($nonsymbol .*)? ;                     -- The content of single-line comments is also ignored entirely.
     \\                        { token LHsTkLam    }
     "->"                      { token LHsTkArrow  }
     "("                       { token LHsTkLParen }
@@ -56,11 +62,11 @@ tokens :-
     $symbol+                  { \pos sym -> throwError (LexicalError pos sym) }
 }
 
-<0, comment> "{-" { openComment }
+<0, comment> "{-"             { openComment       }
 
 <comment> {
-    "-}"          { closeComment }
-    .|\n          ;                -- The content of multi-line comments are ignored entirely.
+    "-}"                      { closeComment      }
+    .|\n                      ;                     -- The content of multi-line comments is ignored entirely.
 }
 
 {
@@ -72,12 +78,12 @@ type Action = LHsPos -> Text -> LHsParser (Maybe LHsToken)
 
 -- | Lifts a 'LHsToken' into an 'Action'.
 token :: LHsToken -> Action
-token t _ _ = pure (Just t)
+token t _ _ = return (Just t)
 
 -- | Lifts a function taking an identifier 
 --   (namely, the constructors 'LHsTkVar' and 'LHsTkCon') into an 'Action'.
 named :: (Text -> LHsToken) -> Action
-named f _ name = pure (Just (f name))
+named f _ name = return (Just (f name))
 
 -- | Opens a multi-line comment, pushing a position onto the stack of the positions of open multi-line comments.
 openComment :: Action
