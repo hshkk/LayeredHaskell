@@ -15,7 +15,7 @@ Currently, the lexer handles the λ-calculus including constructors.
 -}
 module LH.Text.Lexer (
     -- * Lexical tokenization
-    scanToken, scanTokens, 
+    scanToken, scanTokens, scanTokensAsProgram,
     -- ** Stack initialization
     beginProgram
     ) where
@@ -103,6 +103,9 @@ tokens :-
     "::"                      { token LHsTkColonColon }
     "("                       { token LHsTkLParen     }
     ")"                       { token LHsTkRParen     }
+    "["                       { token LHsTkLBrack     }
+    "]"                       { token LHsTkRBrack     }
+    ","                       { token LHsTkComma      }
     ---------------------------------------------------------------------------
     -- Keywords
     "let"                     { layoutKeyword LHsTkLet }
@@ -266,6 +269,7 @@ scanToken = do
                 ([], [])      -> return (LHsLexeme pos LHsTkEOF)
 
 -- | Tokenizes the /entirety/ of the input, producing a (potential) list of 'LHsLexeme's.
+--   If the input is a program, one should use 'scanTokensAsProgram' instead.
 scanTokens :: Text -> Either LHsError [LHsLexeme]
 scanTokens = runLHsParser scan
     where
@@ -275,8 +279,18 @@ scanTokens = runLHsParser scan
                 LHsLexeme _ LHsTkEOF -> return []
                 _ -> fmap (lxm:) scan
 
--- | Opens the layout block holding a program. 
---   __Note that this must be invoked before running the lexer,__ for instance via 'scanTokens'.
+{-# WARNING beginProgram "This should be invoked /before/ lexing a program. Otherwise, layout rules won't be applied to top-level declarations. See 'scanTokensAsProgram'." #-}
+-- | Immediately pushes the @layout@ startcode onto the stack, indicating the beginning of a program.
 beginProgram :: LHsParser ()
 beginProgram = pushStcd layout (LHsPos 1 1)
+
+-- | Tokenizes the /entirety/ of the input as a program, producing a (potential) list of 'LHsLexeme's.
+scanTokensAsProgram :: Text -> Either LHsError [LHsLexeme]
+scanTokensAsProgram = runLHsParser (beginProgram >> scan)
+    where
+        scan = do
+            lxm <- scanToken
+            case lxm of
+                LHsLexeme _ LHsTkEOF -> return []
+                _ -> fmap (lxm:) scan
 }

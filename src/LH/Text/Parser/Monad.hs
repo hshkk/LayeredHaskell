@@ -86,7 +86,7 @@ alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
 alexGetByte inp@AlexInput { aiBytes = b:bs } = Just (b, inp { aiBytes = bs })
 alexGetByte inp = do
     (c, inp') <- nextChar inp
-    b:bs    <- return (utf8 c)
+    b:bs      <- return (utf8 c)
     return (b, inp' { aiBytes = bs })
 
 -- | Returns the character previously read from the input.

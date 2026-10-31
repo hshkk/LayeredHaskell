@@ -66,6 +66,9 @@ data LHsToken
     | LHsTkColonColon      -- ^ A double colon @::@.
     | LHsTkLParen          -- ^ A left parenthesis @(@.
     | LHsTkRParen          -- ^ A right parenthesis @)@.
+    | LHsTkLBrack          -- ^ A left bracket @[@.
+    | LHsTkRBrack          -- ^ A right bracket @]@.
+    | LHsTkComma           -- ^ A comma @,@.
     ---------------------------------------------------------------------------
     -- Keywords
     | LHsTkLet             -- ^ The keyword @let@.

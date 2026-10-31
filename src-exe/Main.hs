@@ -6,7 +6,7 @@ import System.IO          (hPutStrLn, stderr)
 
 import qualified Data.Text.IO as Text (readFile, hPutStrLn)
 
-import LH.Text.Lexer        (scanTokens)
+import LH.Text.Lexer        (scanTokensAsProgram)
 import LH.Text.Parser.Monad (renderError)
 
 main :: IO ()
@@ -15,7 +15,7 @@ main = do
     case args of
         [file] -> do
             src <- Text.readFile file
-            case scanTokens src of
+            case scanTokensAsProgram src of
                 Left err -> do
                     Text.hPutStrLn stderr (renderError file src err)
                     exitFailure
