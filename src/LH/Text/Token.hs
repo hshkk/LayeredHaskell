@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides definitions for tokens and source positions.
+This module provides definitions source positions and tokens.
 -}
 module LH.Text.Token (
     -- * Source positions
@@ -24,19 +24,63 @@ import Data.Text (Text)
 
 -- | A position in the source.
 data LHsPos = LHsPos 
-    { posLine :: !Int -- ^ A line.
-    , posCol  :: !Int -- ^ A column.
+    { posLine :: !Int      -- ^ A line.
+    , posCol  :: !Int      -- ^ A column.
     }
     deriving (Eq, Ord, Show)
 
 -- | A token.
 data LHsToken
+    ---------------------------------------------------------------------------
+    -- Identifiers
     = LHsTkVar    !Text    -- ^ A variable name.
     | LHsTkCon    !Text    -- ^ A constructor name.
-    | LHsTkLam             -- ^ A backslash @\@, as used in a lambda abstraction.
+    ---------------------------------------------------------------------------
+    -- Literals
+    | LHsTkInt    !Int     -- ^ An integer literal.
+    ---------------------------------------------------------------------------
+    -- Operators
     | LHsTkArrow           -- ^ An arrow @->@.
+    -- Arithmetic operators
+    | LHsTkPlus            -- ^ A plus @+@.
+    | LHsTkMinus           -- ^ A hyphen @-@.
+    | LHsTkTimes           -- ^ An asterisk @*@.
+    -- Logical operators
+    | LHsTkOr              -- ^ A double pipe @||@.
+    | LHsTkAnd             -- ^ A double ampersand @&&@.
+    -- Relational operators
+    | LHsTkLt              -- ^ A left angle bracket @<@.
+    | LHsTkGt              -- ^ A right angle bracket @>@.
+    | LHsTkLte             -- ^ A left angle bracket and an equals sign @<=@.
+    | LHsTkGte             -- ^ A right angle bracket and an equals sign @<=@.
+    -- Equality
+    | LHsTkEqEq            -- ^ A double equals sign @==@.
+    -- List operators
+    | LHsTkColon           -- ^ A colon @:@.
+    | LHsTkPlusPlus        -- ^ A double plus @++@.
+    ---------------------------------------------------------------------------
+    -- Symbols
+    | LHsTkLam             -- ^ A backslash @\\@, as used in a λ-abstraction.
+    | LHsTkEq              -- ^ An equals sign @=@.
+    | LHsTkPipe            -- ^ A pipe @|@.
+    | LHsTkColonColon      -- ^ A double colon @::@.
     | LHsTkLParen          -- ^ A left parenthesis @(@.
     | LHsTkRParen          -- ^ A right parenthesis @)@.
+    ---------------------------------------------------------------------------
+    -- Keywords
+    | LHsTkLet             -- ^ The keyword @let@.
+    | LHsTkIn              -- ^ The keyword @in@.
+    | LHsTkCase            -- ^ The keyword @case@.
+    | LHsTkOf              -- ^ The keyword @of@.
+    | LHsTkData            -- ^ The keyword @data@.
+    | LHsTkType            -- ^ The keyword @type@.
+    ---------------------------------------------------------------------------
+    -- Virtual tokens inserted by layout
+    | LHsTkVOpen           -- ^ A /virtual/ opening brace.
+    | LHsTkVClose          -- ^ A /virtual/ opening brace.
+    | LHsTkVSemi           -- ^ A /virtual/ semicolon.
+    ---------------------------------------------------------------------------
+    -- End-of-file
     | LHsTkEOF             -- ^ The token indicating end-of-file (EOF).
     deriving (Eq, Show)
 
