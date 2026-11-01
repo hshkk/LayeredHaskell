@@ -11,7 +11,6 @@ Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
 This module provides the lexer for Layered Haskell.
-Currently, the lexer handles the λ-calculus including constructors.
 -}
 module LH.Text.Lexer (
     -- * Lexical tokenization
@@ -285,6 +284,7 @@ beginProgram :: LHsParser ()
 beginProgram = pushStcd layout (LHsPos 1 1)
 
 -- | Tokenizes the /entirety/ of the input as a program, producing a (potential) list of 'LHsLexeme's.
+--   See 'beginProgram'.
 scanTokensAsProgram :: Text -> Either LHsError [LHsLexeme]
 scanTokensAsProgram = runLHsParser (beginProgram >> scan)
     where

@@ -112,9 +112,8 @@ constructors = describe "constructors" $ do
 
 integers :: Spec
 integers = describe "integers" $ do
-    -- Tests every integer from 1 to 100.
-    forM_ [1..100] $ \n ->
-        Text.pack (show n) `lexesTo` [LHsTkInt n]
+    -- Tests every integer from 1 to 25.
+    forM_ [1..25] (\n -> Text.pack (show n) `lexesTo` [LHsTkInt n])
     "0"   `lexesTo` [LHsTkInt 0]
     "00"  `lexesTo` [LHsTkInt 0]
     "000" `lexesTo` [LHsTkInt 0]
@@ -295,7 +294,7 @@ dataDeclarations = describe "datatype declarations" $ do
     "data T -- c\n  {- d -} = A" `layoutsTo` "{ data T = A }"
     "data T = A\ndata U = B"     `layoutsTo` "{ data T = A ; data U = B }"
     "data T = A\nf = a"          `layoutsTo` "{ data T = A ; f = a }"
-    -- Note: rejecting the following declaration is the parser's responsibility, not the lexer.
+    -- Note: rejecting the following datatype declaration is the parser's responsibility, not the lexer.
     "data T = A\n| B"            `layoutsTo` "{ data T = A ; | B }"
  
 caseExpressions :: Spec

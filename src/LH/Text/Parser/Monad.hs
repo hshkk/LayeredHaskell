@@ -26,7 +26,7 @@ module LH.Text.Parser.Monad (
     -- ** Layout
     getInnermostLayout, pushLayout, popLayout,
     -- ** Errors
-    LHsError (..), renderError
+    LHsError (..), renderError, buildError
     ) where
 
 import Control.Monad.Except       (MonadError)
@@ -47,7 +47,7 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Lazy     as LazyText
 
-import LH.Text.Token (LHsPos (..))
+import LH.Text.Token (LHsPos (..), LHsToken (..))
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
@@ -166,8 +166,11 @@ popLayout = modify (\st -> st { stLayout = drop 1 (stLayout st) })
 
 -- | An error.
 data LHsError
-    = LexicalError    !LHsPos !Text    -- ^ A lexical error emitted by Alex.
-    | UnclosedComment !LHsPos          -- ^ An unclosed multi-line comment error emitted by Alex.
+    = LexicalError    !LHsPos !Text             -- ^ A lexical error emitted by Alex.
+    | UnclosedComment !LHsPos                   -- ^ An unclosed multi-line comment error emitted by Alex.
+    | ParseError      !LHsPos !LHsPos !LHsToken -- ^ A parse error emitted by Happy. 
+                                                --   The first two arguments indicate where an unexpected token 
+                                                --   starts and ends in the source.
     deriving (Eq, Show)
 
 -- | Renders a 'LHsError' as a message referencing the source text.
@@ -178,20 +181,35 @@ renderError :: FilePath    -- ^ The filepath of the source text.
             -> Text        -- ^ The source text itself.
             -> LHsError    -- ^ An error.
             -> Text
-renderError file src err = LazyText.toStrict (prettyErrors src [toErrata file err])
+renderError file src err = LazyText.toStrict (prettyErrors src [buildError file err])
  
 -- | Builds the message corresponding to a 'LHsError'.
-toErrata :: FilePath -> LHsError -> Errata
-toErrata file (LexicalError pos bad) =
+buildError :: FilePath    -- ^ The filepath of the source text. 
+           -> LHsError    -- ^ An error.
+           -> Errata      -- ^ A pretty-printable representation of the error.
+                          --   This is where the error message itself should be written,
+                          --   in addition to places in the source that it may need to point to.
+buildError file (LexicalError pos bad) =
     errataSimple
         (Just ("Lexical error: unexpected `" <> bad <> "`"))
         (underline file pos (Text.length bad) "this is not a valid token")
         Nothing
-toErrata file (UnclosedComment pos) =
+buildError file (UnclosedComment pos) =
     errataSimple
         (Just "Unclosed comment")
         (underline file pos 2 "this comment is never closed")
         Nothing
+buildError file (ParseError start end bad) =
+    errataSimple
+        (Just "Parse error")
+        (underline file start len label)
+        Nothing
+    where
+        len   = max 1 (posCol end - posCol start)
+        label = case bad of
+            LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
+            LHsTkVClose -> "the block ends here, but something before it is unfinished"
+            _           -> "this was not expected here"
 
 -- | Underlines a number of characters on a single line with a label, starting at a given position.
 underline :: FilePath    -- ^ The filepath of the source text.
