@@ -64,6 +64,8 @@ library
         LH.Text.Lexer
         LH.Text.Token
         LH.Text.Parser.Monad
+        LH.Text.Parser.AST
+        LH.Text.Parser.Parser
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -81,7 +83,8 @@ library
         , text       ^>=2.0.2
 
     build-tool-depends:
-        , alex:alex  ^>=3.2.7.4
+        , alex:alex     ^>=3.2.7.4
+        , happy:happy   >= 2.1.6
 
     -- Directories containing source files.
     hs-source-dirs:   src
