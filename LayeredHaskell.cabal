@@ -23,10 +23,14 @@ name:               LayeredHaskell
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:
+synopsis: A friendly layered implementation of a subset of the Haskell programming language.
 
 -- A longer description of the package.
--- description:
+description: 
+    Layered Haskell is a layered functional language in which users can enable and disable various language features at will. 
+    .
+    The modularity of Layered Haskell enables language variants and tailored error messages that provide a gentler introduction to
+    functional programming for novices. It also supports the exploration and implementation of language extensions and their dependencies.
 
 -- The license under which the package is released.
 license:            MIT
@@ -61,27 +65,33 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        LH.Data.Dependency
         LH.Text.Lexer
         LH.Text.Token
         LH.Text.Parser.Monad
 
     -- Modules included in this library but not exported.
-    -- other-modules:
+    other-modules:
+        LH.Layer.E.AbsSyn
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
     build-depends:    
-        , array      ^>=0.5.8
-        , base       ^>=4.18.3.0
-        , bytestring ^>=0.11.5
-        , errata     ^>=0.4.0
-        , mtl        ^>=2.3.1
-        , text       ^>=2.0.2
+        , array       ^>=0.5.8
+        , base        ^>=4.18.3.0
+        , bytestring  ^>=0.11.5
+        , containers  ^>=0.6.7
+        , errata      ^>=0.4.0
+        , happy-lib   ^>=2.2
+        , haskell-src ^>=1.0.4
+        , mtl         ^>=2.3.1
+        , text        ^>=2.0.2
 
     build-tool-depends:
-        , alex:alex  ^>=3.2.7.4
+        , alex:alex   ^>=3.2.7.4
+        , happy:happy ^>=1.20.1.1
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -104,8 +114,13 @@ executable LayeredHaskell
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base        ^>=4.18.3.0
         , LayeredHaskell
+        , base        ^>=4.18.3.0
+        , containers  ^>=0.6.7
+        , filepath    ^>=1.4.301
+        , happy-lib   ^>=2.2
+        , haskell-src ^>=1.0.4
+        , text        ^>=2.0.2
 
     -- Directories containing source files.
     hs-source-dirs:   src-exe
@@ -138,7 +153,7 @@ test-suite LayeredHaskell-test
 
     -- Test dependencies.
     build-depends:
-        , base  ^>=4.18.3.0
-        , HUnit ^>=1.6.2.0
         , LayeredHaskell
-        , text  ^>=2.0.2
+        , base       ^>=4.18.3.0
+        , hspec      ^>=2.11.18
+        , text       ^>=2.0.2
