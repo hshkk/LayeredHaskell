@@ -25,9 +25,10 @@ while :; do
 done
 
 unifdef ./src/LH/Text/Parser/ParserPre.y $@ > ./src/LH/Text/Parser/Parser.y
+unifdefRes=$?
 
 if [ -n "$action" ]; then
-    if [ $? -eq 1 ]; then
+    if [ $unifdefRes -eq 1 ]; then
         cabal $action "$newer"
     fi
 fi

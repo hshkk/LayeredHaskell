@@ -42,7 +42,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y unifdef
     - name: Build
       run: |
-        bash ./build.sh nobuild -DE -UB -UF
+        bash ./build.sh nobuild -DE -DF
         cabal build --enable-tests --enable-benchmarks all
     - name: Run tests
       run: cabal test all
