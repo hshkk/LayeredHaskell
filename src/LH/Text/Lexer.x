@@ -287,7 +287,8 @@ beginProgram :: LHsParser ()
 beginProgram = pushStcd layout (LHsPos 1 1)
 
 -- | Tokenizes the /entirety/ of the input as a program, producing a (potential) list of 'LHsLexeme's.
---   See 'beginProgram'.
+--
+--   This function invokes 'beginProgram', so it is preferable for lexing entire programs over 'scanTokens'.
 scanTokensAsProgram :: Text -> Either LHsError [LHsLexeme]
 scanTokensAsProgram = runLHsParser (beginProgram >> scan)
     where

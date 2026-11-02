@@ -18,20 +18,13 @@ module LH.Feature.Parser (
     parseProgram
     ) where
 
-import Control.Monad.Except (throwError)
-
-import Data.Sequence (Seq, (|>))
-import Data.Text     (Text)
-
-import qualified Data.Sequence as Seq
-
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
 
-%name program Block
+%name parseProgram Block
 
 %tokentype { LHsLexeme }
 %monad     { LHsParser }
@@ -46,19 +39,20 @@ import LH.Text.Token
     '+'    { LHsLexeme _ LHsTkPlus         }
     '-'    { LHsLexeme _ LHsTkMinus        }
     '*'    { LHsLexeme _ LHsTkTimes        }
-    "||"   { LHsLexeme _ LHsTkOr           }
-    "&&"   { LHsLexeme _ LHsTkAnd          }
+    '||'   { LHsLexeme _ LHsTkOr           }
+    '&&'   { LHsLexeme _ LHsTkAnd          }
     '<'    { LHsLexeme _ LHsTkLt           }
     '>'    { LHsLexeme _ LHsTkGt           }
-    "<="   { LHsLexeme _ LHsTkLte          }
-    ">="   { LHsLexeme _ LHsTkGte          }
-    "=="   { LHsLexeme _ LHsTkEqEq         }
+    '<='   { LHsLexeme _ LHsTkLte          }
+    '>='   { LHsLexeme _ LHsTkGte          }
+    '=='   { LHsLexeme _ LHsTkEqEq         }
     'if'   { LHsLexeme _ LHsTkIf           }
     'then' { LHsLexeme _ LHsTkThen         }
     'else' { LHsLexeme _ LHsTkElse         }
     'Int'  { LHsLexeme _ (LHsTkCon "Int")  }
     'Bool' { LHsLexeme _ (LHsTkCon "Bool") }
 
+%right 'else'
 %left '||'
 %left '&&'
 %nonassoc '=='
@@ -89,7 +83,7 @@ Expr :: { LHsExpr }
     | Expr '<=' Expr        { LHsBin LHsLte $1 $3 }
     | Expr '>=' Expr        { LHsBin LHsGte $1 $3 }
     | Expr '==' Expr        { LHsBin LHsEq  $1 $3 }
-    | '-' Exp %prec NEG     { LHsNeg $2 }
+    | '-' Expr %prec NEG    { LHsNeg $2 }
 
 Atom :: { LHsExpr }
     : int          { LHsInt $1 }
@@ -100,19 +94,3 @@ Atom :: { LHsExpr }
 TyAtom :: { LHsType }
     : 'Int'  { LHsTyInt  }
     | 'Bool' { LHsTyBool }
-
-{
--- | Gives the parser the next token. 
-lexer :: (LHsLexeme -> LHsParser a) -> LHsParser a
-lexer f = scanToken >>= f
-
--- | Parses a program, producing a sequence of declarations ('LHsDecl').
-parseProgram :: Text -> Either LHsError (Seq LHsDecl)
-parseProgram = runLHsParser (beginProgram >> program)
-
--- | Reports a token that the parser did not expect.
-parseError :: LHsLexeme -> LHsParser a
-parseError (LHsLexeme start tok) = do
-    end <- fmap aiPos getInput
-    throwError (ParseError start end tok)
-}

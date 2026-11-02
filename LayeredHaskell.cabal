@@ -23,13 +23,13 @@ name:               LayeredHaskell
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis: A friendly layered implementation of a subset of the Haskell programming language.
+synopsis: A friendly layered implementation of a subset of Haskell.
 
 -- A longer description of the package.
 description: 
     Layered Haskell is a layered functional language in which users can enable and disable various language features at will. 
     .
-    The modularity of Layered Haskell enables language variants and tailored error messages that provide a gentler introduction to
+    The modularity of Layered Haskell enables language variants and tailored error messages that provide a gentle introduction to
     functional programming for novices. It also supports the exploration and implementation of language extensions and their dependencies.
 
 -- The license under which the package is released.

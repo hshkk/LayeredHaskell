@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides a basic pretty-printer for Happy abstract syntax trees.
+This module provides a basic pretty-printer for Happy abstract syntax trees, /including embedded Haskell/.
 -}
 module LH.Text.Happy.Pretty (
     -- * Pretty-printer
@@ -21,13 +21,15 @@ import Data.Maybe (maybeToList)
 import Happy.Frontend.AbsSyn
 import Happy.Grammar.ExpressionWithHole (ExpressionWithHole(..))
 
--- | @happy-lib@ exposes a function for pretty-printing abstract syntax, but it doesn't include any Haskell.
---  Since we need to generate /complete/ Happy files, we define our own Happy pretty-printer.
+-- | The @happy-lib@ library exposes a function for pretty-printing abstract syntax, but it doesn't include any Haskell.
+--   Since we need to generate /complete/ Happy files, we define our own Happy pretty-printer.
+--
+--   Currently, the 'pprHappy' function automatically inserts the @-XOverloadedStrings@ extension, 
+--   since pragma information is omitted from the header.
 pprHappy :: BookendedAbsSyn -> String
 pprHappy (BookendedAbsSyn options header (AbsSyn directives rules) footer) =
     concat
         [ maybe "" (\o -> "{-# " ++ o ++ " #-}\n\n") options
-          -- Currently, the OverloadedStrings pragma is manually added in.
         , maybe "" (\h -> braces ("{-# LANGUAGE OverloadedStrings #-}\n" ++ h) ++ "\n\n") header
         , unlines (map pprDirective directives)
         , "\n%%\n\n"

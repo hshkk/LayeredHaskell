@@ -66,8 +66,9 @@ class Superimposable a where
     (-->) :: a -> a -> a
     x --> _ = x
 
--- | An 'Identifiable' type has an 'Identifier', which is a name identifying a value.
---   The 'identify' function then takes a value and produces its identifier.
+-- | An 'Identifiable' type @a@ has an 'Identifier', which is a value of some type identifying a value of type @a@.
+--   'Identifier' is defined on a case-by-case basis, since a type @a@ might need a different identification mechanism than another type @b@.
+--   The 'identify' function then takes a value and produces its 'Identifier'.
 --   This allows us to decide whether two values can be merged in a general way.
 class Identifiable a where
     type Identifier a
@@ -239,7 +240,7 @@ instance Identifiable (Y.Rule String) where
     type Identifier (Y.Rule String) = String
     identify (Y.Rule name _ _ _) = name
 
--- | Token definitions and @%name@ directives are overridden from the left.
+-- | @%token@ directives are merged and @%name@ directives are overridden from the left.
 --   Other differing directives are simply rejected.
 instance Superimposable (Y.Directive String) where
     x@(Y.TokenSpec _)  --> _ = x

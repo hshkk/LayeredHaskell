@@ -30,7 +30,7 @@ import LH.Text.Parser.Monad
 import LH.Text.Token
 }
 
-%name program Block
+%name parseProgram Block
 
 %tokentype { LHsLexeme }
 %monad     { LHsParser }
