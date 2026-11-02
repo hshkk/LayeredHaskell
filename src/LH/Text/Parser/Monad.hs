@@ -64,9 +64,9 @@ data AlexInput = AlexInput
 
 -- | Reads the next character from the input and advances the input state.
 nextChar :: AlexInput -> Maybe (Char, AlexInput)
-nextChar (AlexInput p _ _ t) = do
-    (c, t') <- Text.uncons t
-    Just (c, AlexInput (advance c p) c [] t')
+nextChar (AlexInput pos _ _ txt) = do
+    (c, txt') <- Text.uncons txt
+    Just (c, AlexInput (advance c pos) c [] txt')
     where
         -- | Advances the source position after consuming a character.
         advance :: Char -> LHsPos -> LHsPos
@@ -176,7 +176,7 @@ data LHsError
 -- | Renders a 'LHsError' as a message referencing the source text.
 --
 --   Note that for 'renderError' to produce expected output, 
---   the 'Text' argument must be the /same/ source text that was given to the lexer (namely via 'LH.Text.Lexer.scanTokens').
+--   the 'Text' argument must be the /same/ source text that was given to the lexer.
 renderError :: FilePath    -- ^ The filepath of the source text. 
             -> Text        -- ^ The source text itself.
             -> LHsError    -- ^ An error.

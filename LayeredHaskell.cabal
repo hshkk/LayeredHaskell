@@ -65,14 +65,16 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
-        LH.Data.Dependency
+        LH.Control.Superimposition
+        LH.Data.Feature
         LH.Text.Lexer
         LH.Text.Token
         LH.Text.Parser.Monad
 
     -- Modules included in this library but not exported.
     other-modules:
-        LH.Layer.E.AbsSyn
+        LH.Feature.E.AbsSyn
+        LH.Feature.E.Parser
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

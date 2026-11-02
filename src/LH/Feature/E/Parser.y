@@ -1,6 +1,6 @@
 {
 {- |
-Module      : LH.Layer.E.Parser
+Module      : LH.Feature.E.Parser
 Description : The parser for E.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -12,7 +12,7 @@ Stability   : experimental
 
 This module provides a parser for Layered Haskell programs with E enabled.
 -}
-module LH.Layer.E.Parser (
+module LH.Feature.E.Parser (
     -- * Parsing
     parseProgram
     ) where
@@ -24,7 +24,7 @@ import Data.Text     (Text)
 
 import qualified Data.Sequence as Seq
 
-import LH.Layer.E.AbsSyn
+import LH.Feature.E.AbsSyn
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token
@@ -117,7 +117,7 @@ lexer f = scanToken >>= f
 
 -- | Parses a program, producing a sequence of declarations ('LHsDecl').
 parseProgram :: Text -> Either LHsError (Seq LHsDecl)
-parseProgram = runLHsParser (startProgram >> program)
+parseProgram = runLHsParser (beginProgram >> program)
 
 -- | Reports a token that the parser did not expect.
 parseError :: LHsLexeme -> LHsParser a

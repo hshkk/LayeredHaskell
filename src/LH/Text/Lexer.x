@@ -264,8 +264,8 @@ scanToken = do
             st <- gets (\st -> ([p | LHsStcd c p <- stStcds st, c == comment], stLayout st))
             case st of
                 (posns@(_:_), _) -> throwError (UnclosedComment (last posns))
-                ([], _:_)     -> LHsLexeme pos LHsTkVClose <$ popLayout
-                ([], [])      -> return (LHsLexeme pos LHsTkEOF)
+                ([], _:_) -> LHsLexeme pos LHsTkVClose <$ popLayout
+                ([], [])  -> return (LHsLexeme pos LHsTkEOF)
 
 -- | Tokenizes the /entirety/ of the input, producing a (potential) list of 'LHsLexeme's.
 --   If the input is a program, one should use 'scanTokensAsProgram' instead.
