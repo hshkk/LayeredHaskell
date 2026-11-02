@@ -4,15 +4,13 @@ import Control.Monad (forM_)
 import System.Environment (getArgs)
 import System.Exit (die)
 
-import Language.Haskell.Syntax
-import Language.Haskell.Parser (parseModule, ParseResult(..))
 import Language.Haskell.Pretty (prettyPrint)
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import LH.Data.Feature
-import LH.Text.Happy.Pretty
+import LH.Data.Feature      (registry, merge)
+import LH.Text.Happy.Pretty (pprHappy)
 
 main :: IO ()
 main = do
@@ -27,12 +25,3 @@ main = do
             forM_ (Map.toList happy) (\(_, gram) -> do
                 let out = pprHappy gram
                 length out `seq` writeFile (concat names ++ ".y") out)
-
-
-parseFile :: FilePath -> IO HsModule
-parseFile file = do
-    src <- readFile file
-    case parseModule src of
-        ParseOk modl -> return modl
-        ParseFailed src' msg -> 
-            die (file ++ "@" ++ show (srcLine src') ++ ":" ++ show (srcColumn src') ++ " - " ++ msg)
