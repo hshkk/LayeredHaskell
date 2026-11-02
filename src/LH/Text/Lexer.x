@@ -113,6 +113,9 @@ tokens :-
     "of"                      { layoutKeyword LHsTkOf  }
     "data"                    { token LHsTkData        }
     "type"                    { token LHsTkType        }
+    "if"                      { token LHsTkIf          }
+    "then"                    { token LHsTkThen        }
+    "else"                    { token LHsTkElse        }
     ---------------------------------------------------------------------------
     -- Operators
     "->"                      { token LHsTkArrow    }

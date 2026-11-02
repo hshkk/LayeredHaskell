@@ -1,6 +1,6 @@
 {
 {- |
-Module      : LH.Feature.E.Parser
+Module      : LH.Feature.Parser
 Description : The parser for E.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -12,7 +12,7 @@ Stability   : experimental
 
 This module provides a parser for Layered Haskell programs with E enabled.
 -}
-module LH.Feature.E.Parser (
+module LH.Feature.Parser (
     -- * Parsing
     parseProgram
     ) where
@@ -24,7 +24,7 @@ import Data.Text     (Text)
 
 import qualified Data.Sequence as Seq
 
-import LH.Feature.E.AbsSyn
+import LH.Feature.AbsSyn
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token
@@ -52,6 +52,8 @@ import LH.Text.Token
     OPEN  { LHsLexeme _ LHsTkVOpen }
     SEMI  { LHsLexeme _ LHsTkVSemi }
     CLOSE { LHsLexeme _ LHsTkVClose }
+
+%right 'in'
 
 %%
 

@@ -77,6 +77,9 @@ data LHsToken
     | LHsTkOf              -- ^ The keyword @of@.
     | LHsTkData            -- ^ The keyword @data@.
     | LHsTkType            -- ^ The keyword @type@.
+    | LHsTkIf              -- ^ The keyword @if@.
+    | LHsTkThen            -- ^ The keyword @then@.
+    | LHsTkElse            -- ^ The keyword @else@.
     ---------------------------------------------------------------------------
     -- Virtual tokens inserted by layout
     | LHsTkVOpen           -- ^ A /virtual/ opening brace.

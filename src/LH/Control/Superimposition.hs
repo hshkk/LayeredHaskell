@@ -43,10 +43,9 @@ The following example illustrates its use on two Haskell files.
 module LH.Control.Superimposition where
 
 import Control.Applicative ((<|>))
-import Control.Monad (guard)
-import Data.Char (isSpace)
-import Data.List (find, intercalate, nub, partition)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Char           (isSpace)
+import Data.List           (find, nub, partition)
+import Data.Maybe          (catMaybes)
 
 import qualified Happy.Frontend.AbsSyn        as Y
 import qualified Happy.Frontend.PrettyGrammar as Y
@@ -113,51 +112,15 @@ instance Identifiable H.HsMatch where
 
 -- Modules --------------------------------------------------------------------
 
+-- | To superimpose two Haskell modules, they must have the same name.
 instance Superimposable H.HsModule where
     H.HsModule loc mod1 exps1 imps1 decls1 --> H.HsModule _ mod2 exps2 imps2 decls2
-        = H.HsModule loc name
-                     (liftA2 (-->) exps1' exps2')
-                     (imps1' --> imps2')
-                     (concatMap flattenDecls decls1 --> concatMap flattenDecls decls2)
-        where
-            name = fromMaybe (error ("Cannot merge modules " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2
-                                     ++ ": they must be named `LH.Feature.X.Y` and `LH.Feature.Z.Y`"))
-                             (mergeNames mod1 mod2)
-
-            (table1, table2) = unzip [ ((i1, m), (i2, m))
-                                     | i1 <- map H.importModule imps1, sameFeature mod1 i1
-                                     , i2 <- map H.importModule imps2, sameFeature mod2 i2
-                                     , Just m <- [mergeNames i1 i2] ]
-            (exps1', imps1') = redirect table1 exps1 imps1
-            (exps2', imps2') = redirect table2 exps2 imps2
-
--- | Splits the name @LH.Feature.X.Y@ into a pair @(X, Y)@.
-splitName :: H.Module -> Maybe (String, String)
-splitName (H.Module name) = case words (map (\c -> if c == '.' then ' ' else c) name) of
-    ["LH", "Feature", x, y] -> Just (x, y)
-    _                       -> Nothing
-
--- | Determines whether two modules correspond to the same feature.
-sameFeature :: H.Module -> H.Module -> Bool
-sameFeature mod1 mod2 = fmap fst (splitName mod1) == fmap fst (splitName mod2)
-
--- | Merges the names @LH.Feature.X.Y@ and @LH.Feature.Z.Y@, producing the name @LH.Feature.XZ.Y@.
-mergeNames :: H.Module -> H.Module -> Maybe H.Module
-mergeNames mod1 mod2 = do
-    (x1, y1) <- splitName mod1
-    (x2, y2) <- splitName mod2
-    guard (y1 == y2)
-    pure (H.Module (intercalate "." ["LH", "Feature", x1 ++ x2, y1]))
-
--- | Substitutes module names.
-redirect :: [(H.Module, H.Module)] -> Maybe [H.HsExportSpec] -> [H.HsImportDecl]
-         -> (Maybe [H.HsExportSpec], [H.HsImportDecl])
-redirect table exps imps = (map export <$> exps, map import_ imps)
-    where
-        to m                             = fromMaybe m (lookup m table)
-        export (H.HsEModuleContents m)   = H.HsEModuleContents (to m)
-        export spec                      = spec
-        import_ imp                      = imp { H.importModule = to (H.importModule imp) }
+        | mod1 == mod2
+            = H.HsModule loc mod1
+                        (liftA2 (-->) exps1 exps2)
+                        (imps1 --> imps2)
+                        (concatMap flattenDecls decls1 --> concatMap flattenDecls decls2)
+        | otherwise = error ("Cannot merge differing modules: " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2)
 
 -- | Splits a declaration holding several names into one declaration per name.
 --   Variable bindings (such as @x = e@) are also rewritten as function bindings, since they get parsed as a pattern binding.
@@ -301,12 +264,12 @@ instance Identifiable (Y.Directive String) where
     identify (Y.TokenAttribute name _) = AttributeI name
     identify dir                       = OtherI (takeWhile (/= ' ') (show dir))
 
--- | Splits @%token a b@ into @%token a@ and @%token b@.
+-- | Splits @%token a b@ into @%token a@ and @%token b@, but leaves all other directives alone.
 flattenTokens :: [Y.Directive String] -> [Y.Directive String]
-flattenTokens dirs = dirs >>= split
+flattenTokens = (=<<) flattenToken
     where
-        split (Y.TokenSpec specs) = map (Y.TokenSpec . pure) specs
-        split dir                 = [dir]
+        flattenToken (Y.TokenSpec specs) = map (Y.TokenSpec . return) specs
+        flattenToken dir = return dir
 
 instance Superimposable (Y.AbsSyn String) where
     Y.AbsSyn dirs1 rules1 --> Y.AbsSyn dirs2 rules2
@@ -314,21 +277,24 @@ instance Superimposable (Y.AbsSyn String) where
         where
             (prios2, others2) = partition (`elem` Y.getPrios dirs2) dirs2
             prios1 = concatMap Y.getPrioNames (Y.getPrios dirs1)
-            lower  = [ level toks
-                     | prio <- prios2
-                     , let toks  = filter (`notElem` prios1) (Y.getPrioNames prio)
-                           level = case prio of Y.TokenLeft  _ -> Y.TokenLeft
-                                                Y.TokenRight _ -> Y.TokenRight
-                                                _              -> Y.TokenNonassoc
-                     , not (null toks) ]
+            lower  = 
+                [ assoc toks
+                | prio <- prios2
+                , let toks  = filter (`notElem` prios1) (Y.getPrioNames prio)
+                      assoc = case prio of Y.TokenLeft  _ -> Y.TokenLeft
+                                           Y.TokenRight _ -> Y.TokenRight
+                                           _              -> Y.TokenNonassoc
+                , not (null toks) ]
 
 -- | Happy grammars are superimposed by first superimposing the header and footer as a Haskell module.
 --   Then, each rule is superimposed.
 instance Superimposable Y.BookendedAbsSyn where
     Y.BookendedAbsSyn opts1 head1 syn1 foot1 --> Y.BookendedAbsSyn opts2 head2 syn2 foot2
         = Y.BookendedAbsSyn (opts1 <|> opts2)
+                            -- The header contains the Haskell module declaration and imports.
                             (Just (H.prettyPrint (H.HsModule loc name exps imps [])))
                             (syn1 --> syn2)
+                            -- The footer contains Haskell declarations.
                             (Just (unlines (map H.prettyPrint decls)))
         where
             H.HsModule loc name exps imps decls = parse head1 foot1 --> parse head2 foot2

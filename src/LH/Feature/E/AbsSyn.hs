@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Feature.E.AbsSyn
+Module      : LH.Feature.AbsSyn
 Description : The abstract syntax for E.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -11,10 +11,10 @@ Stability   : experimental
 
 This module provides abstract syntax definitions for E.
 -}
-module LH.Feature.E.AbsSyn (
-    -- * Syntax
+module LH.Feature.AbsSyn (
+    -- * Identifiers
     Id, 
-    -- ** Declarations
+    -- * Declarations
     LHsDecl (..), 
     -- ** Expressions and values
     LHsExpr (..), LHsVal (..),
@@ -48,9 +48,9 @@ data LHsVal
     = LHsVCon Id [LHsVal]          -- ^ A constructor.
     | LHsClos LHsEnv LHsExpr       -- ^ A closure (a pair of an environment and an expression), implementing lexical scoping.
 
-{-# WARNING LHsType "E has no types. It must be accompanied by B or D." #-}
--- | A type.
-data LHsType
+-- {-# WARNING LHsType "E has no types. It must be accompanied by B or D." #-}
+-- -- | A type.
+-- data LHsType
 
 -- | An environment of variable-value bindings.
 type LHsEnv = Map Id LHsVal
