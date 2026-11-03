@@ -35,6 +35,7 @@ type Id = Text
 data LHsDecl
     = LHsEqn Id LHsExpr            -- ^ An equation.
     | LHsSig Id LHsType            -- ^ A type signature.
+    deriving (Eq, Show)
 
 -- | An expression.
 data LHsExpr
@@ -42,11 +43,13 @@ data LHsExpr
     | LHsCon Id                    -- ^ A constructor.
     | LHsApp LHsExpr LHsExpr       -- ^ An application.
     | LHsLet (Seq LHsDecl) LHsExpr -- ^ A @let@ expression.
+    deriving (Eq, Show)
 
 -- | A value.
 data LHsVal
     = LHsVCon Id [LHsVal]          -- ^ A constructor.
     | LHsClos LHsEnv LHsExpr       -- ^ A closure (a pair of an environment and an expression), implementing lexical scoping.
+    deriving (Eq, Show)
 
 -- {-# WARNING LHsType "E has no types. It must be accompanied by B or D." #-}
 -- -- | A type.

@@ -105,7 +105,7 @@ registry = Map.fromList
                     (Has "E")
                     None)
     ]
-    where qualify file = "src/LH/Feature/" ++ file
+    where qualify file = "LayeredHaskell-make/src-make/LH/Feature/" ++ file
 
 -- | A feature set is a set of features, which we simply identify by their names.
 type FeatureSet = Set FeatureName

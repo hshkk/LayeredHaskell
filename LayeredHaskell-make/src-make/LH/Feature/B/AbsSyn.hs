@@ -14,8 +14,10 @@ This module provides abstract syntax definitions for B.
 module LH.Feature.AbsSyn (
     -- * Expressions and values
     LHsExpr (..), LHsVal (..),
+    -- ** Binary operators
+    LHsBin (..),
     -- * Types
-    LHsType
+    LHsType (..)
     ) where
 
 -- | An expression.
@@ -25,6 +27,7 @@ data LHsExpr
     | LHsNeg  LHsExpr                 -- ^ Negation.
     | LHsIf   LHsExpr LHsExpr LHsExpr -- ^ An @if@ expression.
     -- Note that we do not need a dedicated Boolean representation, since LHsCon provides this already.
+    deriving (Eq, Show)
 
 -- | A binary operator (except for list operators).
 data LHsBin
@@ -42,12 +45,15 @@ data LHsBin
     | LHsGte
     -- Equality
     | LHsEq
+    deriving (Eq, Show)
 
 -- | A value.
 data LHsVal
     = LHsVInt Int                  -- ^ An integer.
+    deriving (Eq, Show)
 
 -- | A type.
 data LHsType
     = LHsTyInt                     -- ^ The integer type.
     | LHsTyBool                    -- ^ The Boolean type.
+    deriving (Eq, Show)
