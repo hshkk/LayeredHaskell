@@ -22,7 +22,7 @@ main = do
     let names = filter (not . null) (lines args)
     merged <- merge registry (Set.fromList names)
     case merged of
-        Left err   -> die err
+        Left err -> die err
         Right (haskell, happy) -> do
             forM_ (Map.toList haskell) (\(name, modl) -> do
                 let out = prettyPrint modl
@@ -30,6 +30,7 @@ main = do
             forM_ (Map.toList happy) (\(name, gram) -> do
                 let out = pprHappy gram
                 length out `seq` writeIfChanged (qualify (end name) ++ ".y") out)
+    putStrLn $ "<INFO> Done!"
     where
         qualify file = "src/LH/Feature/" ++ file
         end = reverse . takeWhile (/= '.') . reverse
@@ -41,4 +42,6 @@ writeIfChanged path new = do
     createDirectoryIfMissing True (takeDirectory path)
     exists <- doesFileExist path
     old <- if exists then readFile' path else pure ""
-    unless (exists && old == new) (writeFile path new)
+    unless (exists && old == new) $ do
+        writeFile path new
+        putStrLn $ "<INFO> Updated source file " ++ path

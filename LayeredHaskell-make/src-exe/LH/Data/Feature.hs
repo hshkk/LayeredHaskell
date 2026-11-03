@@ -28,7 +28,8 @@ module LH.Data.Feature (
     cnf, dnf
     ) where
 
-import Control.Monad (forM, mapAndUnzipM, unless)
+import Control.Monad (forM, unless)
+import Data.List     (intercalate)
 import Data.Map      (Map)
 import Data.Set      (Set)
 
@@ -133,7 +134,7 @@ order reg names = fmap reverse (traverse acyclic (Graph.stronglyConnComp nodes))
         nodes = [ (name, name, Set.toList (Set.unions (dependsOn feat <> impliedBy feat)))
                 | (name, feat) <- Map.toList (Map.restrictKeys reg names) ]
         acyclic (Graph.AcyclicSCC name)   = Right name
-        acyclic (Graph.CyclicSCC members) = Left ("these features have cyclic dependencies: " ++ unwords members)
+        acyclic (Graph.CyclicSCC members) = Left ("<ERROR> These features have cyclic dependencies: " ++ unwords members)
 
 -- | Lists every problem with a set of feature names.
 --   An empty result means that there are no problems with the set.
@@ -159,34 +160,54 @@ resolve reg names = do
 --
 --   The result of 'load' also carries around corresponding module names, 
 --   since we only want to superimpose modules of the same name.
-load :: Feature -> IO (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn)
+load :: Feature -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 load feat = do
-    haskell <- forM (modules feat) (\file -> do
-        modl@(HsModule _ (Module name) _ _ _) <- readFile file >>= parse file
-        return (name, modl))
-    happy <- forM (maybe [] return (grammar feat)) (\file -> do
+    haskellSrcs <- forM (modules feat) (\file -> do
         src <- readFile file
-        gram@(BookendedAbsSyn _ (Just header) _ _) <- 
-            either (fail . ((file ++ ".. HAPPY ") ++)) return (parseYFileContents src)
-        HsModule _ (Module name) _ _ _ <- parse file header
-        return (name, gram))
-    return (Map.fromList haskell, Map.fromList happy)
+        return (file, src))
+    happySrcs <- forM (maybe [] return (grammar feat)) (\file -> do
+        src <- readFile file
+        return (file, src))
+    return $ do
+        haskell <- forM haskellSrcs (\(file, src) -> do
+            modl@(HsModule _ (Module name) _ _ _) <- parse file src
+            return (name, modl))
+        happy <- forM happySrcs (\(file, src) -> do
+            gram <- either (Left . ((file ++ ": ") ++)) Right (parseYFileContents src)
+            header <- case gram of
+                BookendedAbsSyn _ (Just header) _ _ -> Right header
+                _ -> Left (file ++ ": The grammar header is empty, so I can't identify it")
+            HsModule _ (Module name) _ _ _ <- parse file header
+            return (name, gram))
+        return (Map.fromList haskell, Map.fromList happy)
     where
         parse file src = case parseModule src of
-            ParseOk modl -> return modl
-            ParseFailed (SrcLoc _ l c) err -> 
-                fail (file ++ "@" ++ show l ++ ":" ++ show c ++ ".. HASKELL " ++ err)
+            ParseOk modl -> Right modl
+            ParseFailed (SrcLoc _ l c) err ->
+                Left (file ++ "@" ++ show l ++ ":" ++ show c ++ ": " ++ err)
 
 -- | Resolves the dependencies inherent to a 'FeatureSet', then superimposes modules and grammars 
 --   such that a single set of Haskell modules and at most one Happy grammar is produced.
 merge :: Registry -> FeatureSet -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 merge reg names = case resolve reg names of
-    Left err    -> return (Left err)
+    Left err    -> return (Left (errLabel err))
     Right feats -> do
+        putStrLn $ infoLabel "These features are enabled: " ++ intercalate " " (Set.toList names)
+        let newfeats = Set.toList (Set.difference (select reg names) names)
+        unless (null newfeats) (putStrLn 
+            $  infoLabel "These features were automatically enabled: " 
+            ++ intercalate " " newfeats)
         -- While each feature only has at most one grammar, 
         -- the Map-based representation leads to a simpler implementation.
-        (modls, grams) <- mapAndUnzipM load feats
-        return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
+        results <- mapM load feats
+        case sequence results of
+            Left err    -> return (Left (errLabel err))
+            Right pairs -> do
+                let (modls, grams) = unzip pairs
+                return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
+    where
+        infoLabel msg = "<INFO> " ++ msg
+        errLabel msg = "<ERROR> " ++ msg
 
 -------------------------------------------------------------------------------
 -- Dependencies
