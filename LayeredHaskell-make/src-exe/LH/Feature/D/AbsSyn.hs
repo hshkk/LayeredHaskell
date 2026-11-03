@@ -22,7 +22,14 @@ import Data.Sequence (Seq)
 
 -- | A declaration.
 data LHsDecl
-    = LHsData Id (Seq (Id, Seq Id))  -- ^ A datatype declaration.
+    = LHsData Id (Seq Id) (Seq (Id, Seq LHsType))  
+                                     -- ^ A datatype declaration.
+                                     --   
+                                     --   Type variables are not present in @D@,
+                                     --   but we include it as the second argument to 
+                                     --   avoid rewriting it again for @P@.
+                                     --   In @D@, the sequence will /always/ be empty, 
+                                     --   a property guaranteed by the parser.
     deriving (Eq, Show)
 
 -- | A type.

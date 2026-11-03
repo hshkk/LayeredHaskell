@@ -54,35 +54,28 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Rules
 
--- A block of declarations, which also serves as a program.
-Block :: { Seq LHsDecl }
-    : OPEN Decls End { $2 }
-
--- The end of a block.
--- Outside of a virtual closing brace, a parse error can also end a block!
-End :: { () }
-    : CLOSE { () }
-    | error {% popLayout }
-
 -------------------------------------------------------------------------------
 -- Declarations
 
 -- A sequence of constructor declarations (separated by pipes).
-Cons :: { Seq (Id, Seq Id) }
+Cons :: { Seq (Id, Seq LHsType) }
     : {- ε -}         { Seq.empty }
     | Con             { Seq.singleton $1 }
     | Cons '|' Con    { $1 |> $3 }
 
 -- A constructor declaration.
-Con :: { (Id, Seq Id) }
+Con :: { (Id, Seq LHsType) }
     : con             { ($1, Seq.empty) }
-    | Con con         { let (c, xs) = $1 in (c, xs |> $2) }
+    | Con TyAtom      { let (c, xs) = $1 in (c, xs |> $2) }
+    -- ^ TODO: Add type applications to TyAtom in P.
 
 -- A single declaration.
 Decl :: { LHsDecl }
-    : var '='  Expr       { LHsEqn  $1 $3 }
-    | var '::' Type       { LHsSig  $1 $3 }
-    | 'data' con '=' Cons { LHsData $2 $4 }
+    : 'data' con TyVars '=' Cons { LHsData $2 $3 $5 }
+
+-- Type variables. (D has none.)
+TyVars :: { Seq Id }
+    : {- ε -}         { Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Types
