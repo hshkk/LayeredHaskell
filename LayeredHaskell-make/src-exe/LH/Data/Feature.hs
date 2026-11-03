@@ -82,13 +82,14 @@ data Feature = Feature
 --
 --   Since 'feature' takes 'Dependency' arguments, it's easier to construct features using this over the original constructor 'Feature'.
 feature
-    :: [FilePath]        -- ^ Haskell source files.
-    -> Maybe FilePath    -- ^ Happy grammar, if any.
+    :: [FilePath]        -- ^ Haskell source files (specified /relatively/, e.g. @E/AbsSyn.hs@).
+    -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@).
     -> Dependency        -- ^ What \(f\) depends on. See 'dependsOn'.
     -> Dependency        -- ^ What implies \(f\). See 'impliedBy'.
     -> Feature
 feature modls gram depends implied =
-    Feature modls gram (cnf depends) (dnf implied)
+    Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied)
+    where qualify file = "LayeredHaskell-make/src-exe/LH/Feature/" ++ file
 
 -- | A registry maps names to their 'Feature's.
 type Registry = Map FeatureName Feature
@@ -96,16 +97,15 @@ type Registry = Map FeatureName Feature
 -- | The set of /all/ features.
 registry :: Registry
 registry = Map.fromList
-    [ ("E", feature [qualify "E/AbsSyn.hs"]
-                    (Just (qualify "E/Parser.y"))
+    [ ("E", feature ["E/AbsSyn.hs"]
+                    (Just ("E/Parser.y"))
                     None
                     None)
-    , ("B", feature [qualify "B/AbsSyn.hs"]
-                    (Just (qualify "B/Parser.y"))
+    , ("B", feature ["B/AbsSyn.hs"]
+                    (Just ("B/Parser.y"))
                     (Has "E")
                     None)
     ]
-    where qualify file = "LayeredHaskell-make/src-make/LH/Feature/" ++ file
 
 -- | A feature set is a set of features, which we simply identify by their names.
 type FeatureSet = Set FeatureName
