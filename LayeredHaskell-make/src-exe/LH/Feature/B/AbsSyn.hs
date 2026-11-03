@@ -54,6 +54,5 @@ data LHsVal
 
 -- | A type.
 data LHsType
-    = LHsTyInt                     -- ^ The integer type.
-    | LHsTyBool                    -- ^ The Boolean type.
+    = LHsTyCon Id                  -- ^ A nullary type constructor.
     deriving (Eq, Show)

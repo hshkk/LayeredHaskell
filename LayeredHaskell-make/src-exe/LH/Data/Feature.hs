@@ -105,6 +105,10 @@ registry = Map.fromList
                     (Just ("B/Parser.y"))
                     (Has "E")
                     None)
+    , ("D", feature ["D/AbsSyn.hs"]
+                    (Just ("D/Parser.y"))
+                    (Has "E")
+                    None)
     ]
 
 -- | A feature set is a set of features, which we simply identify by their names.

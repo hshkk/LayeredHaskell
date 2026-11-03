@@ -92,5 +92,5 @@ Atom :: { LHsExpr }
 -- Types
 
 TyAtom :: { LHsType }
-    : 'Int'  { LHsTyInt  }
-    | 'Bool' { LHsTyBool }
+    : 'Int'  { LHsTyCon "Int"  }
+    | 'Bool' { LHsTyCon "Bool" }

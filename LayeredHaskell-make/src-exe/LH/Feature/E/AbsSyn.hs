@@ -47,7 +47,7 @@ data LHsExpr
 
 -- | A value.
 data LHsVal
-    = LHsVCon Id [LHsVal]          -- ^ A constructor.
+    = LHsVCon Id (Seq LHsVal)      -- ^ A constructor.
     | LHsClos LHsEnv LHsExpr       -- ^ A closure (a pair of an environment and an expression), implementing lexical scoping.
     deriving (Eq, Show)
 
