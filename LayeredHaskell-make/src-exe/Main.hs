@@ -18,7 +18,7 @@ import LH.Text.Happy.Pretty (pprHappy)
 --   Outputs files to @src/LH/Feature/@.
 main :: IO ()
 main = do
-    args <- readFile "src/Features"
+    args <- readFile "src/LH/Feature/Features"
     let names = filter (not . null) (lines args)
     merged <- merge registry (Set.fromList names)
     case merged of
