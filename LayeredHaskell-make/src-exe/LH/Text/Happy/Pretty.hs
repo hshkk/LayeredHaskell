@@ -30,11 +30,11 @@ pprHappy :: BookendedAbsSyn -> String
 pprHappy (BookendedAbsSyn options header (AbsSyn directives rules) footer) =
     concat
         [ maybe "" (\o -> "{-# " ++ o ++ " #-}\n\n") options
-        , maybe "" (\h -> braces ("{-# LANGUAGE OverloadedStrings #-}\n" ++ h) ++ "\n\n") header
+        , maybe "" (\h -> braces' ("{-# LANGUAGE OverloadedStrings #-}\n" ++ h) ++ "\n\n") header
         , unlines (map pprDirective directives)
         , "\n%%\n\n"
         , intercalate "\n" (map pprRule rules)
-        , maybe "" (\f -> "\n" ++ braces f ++ "\n") footer
+        , maybe "" (\f -> "\n" ++ braces' f ++ "\n") footer
         ]
 
 -------------------------------------------------------------------------------
@@ -118,3 +118,7 @@ pprTerm (App name args) = name ++ "(" ++ intercalate ", " (map pprTerm args) ++ 
 --   Happy doesn't keep the curly braces around code segments, so we need to add them back in.
 braces :: String -> String
 braces s = "{" ++ s ++ "}"
+
+-- | Wraps braces around a string with newlines.
+braces' :: String -> String
+braces' s = "{\n" ++ s ++ "\n}"
