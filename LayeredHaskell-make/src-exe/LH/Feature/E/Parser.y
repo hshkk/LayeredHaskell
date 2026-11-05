@@ -82,8 +82,13 @@ Decls :: { Seq LHsDecl }
 
 -- A single declaration.
 Decl :: { LHsDecl }
-    : var '='  Expr { LHsEqn $1 $3 }
-    | var '::' Type { LHsSig $1 $3 }
+    : var Pats '=' Expr { LHsEqn $1 $2 $4 }
+    | var '::' Type     { LHsSig $1 $3 }
+
+-- A sequence of patterns (separated by juxtaposition).
+-- E contains no patterns, so this rule is empty.
+Pats :: { Seq LHsPat }
+    : {- ε -}           { Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Expressions

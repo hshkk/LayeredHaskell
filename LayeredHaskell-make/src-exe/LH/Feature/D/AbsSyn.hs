@@ -32,6 +32,13 @@ data LHsDecl
                                      --   a property guaranteed by the parser.
     deriving (Eq, Show)
 
+{-# WARNING LHsType "D has no accessible patterns. The following is only used when F is enabled." #-}
+data LHsPat
+    = LHsPCon Id (Seq LHsPat)      -- ^ A pattern constructor.
+                                   --   The parser for D explicitly does not parse this,
+                                   --   but it must be included since D need not be enabled alongside F,
+                                   --   which does provide patterns in equations (or case expressions).
+
 -- | A type.
 data LHsType
     = LHsTyCon Id                    -- ^ A nullary type constructor.
