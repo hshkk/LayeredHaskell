@@ -71,6 +71,6 @@ atom : var          { AVar $1 }
 parseError = error ("Parse error\n")
 
 -- | Parses the /entirety/ of the input into a potenital AST.
-parse :: String -> Either LHsError Program
-parse s = scanTokens (pack s) >>= genParser
+parse :: Text -> Either LHsError Program
+parse s = scanTokens s >>= genParser
 }

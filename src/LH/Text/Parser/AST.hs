@@ -29,19 +29,23 @@ import Data.Text (Text)
 
 -- | A program (a list of declarations).
 newtype Program = Program [Decl]
+    deriving (Eq, Show)
 
 -- | A declaration.
 data Decl
     = ExprDecl Expr -- ^ An expression declaration /TEMP/.
+    deriving (Eq, Show)
 
 -- | An expression.
 data Expr
     = AtomExpr Atom      -- ^ An atomic expression.
     | CompExpr Expr Atom -- ^ A compound expression.
     | LamExpr Atom Expr  -- ^ A lambda expression.
+    deriving (Eq, Show)
 
 -- | An atomic node.
 data Atom
     = AVar Text   -- ^ A variable atomic.
     | ACons Text  -- ^ A constructor atomic.
     | AScope Expr -- ^ An expression in an isolated scope.
+    deriving (Eq, Show)
