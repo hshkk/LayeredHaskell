@@ -22,5 +22,4 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
-src/LH/Feature/*
-!src/LH/Feature/Features
+src/LH/Feature/
