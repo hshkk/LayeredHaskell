@@ -55,8 +55,7 @@ extra-doc-files:
     README.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
-extra-source-files:
-    src/Features
+-- extra-source-files:
 
 custom-setup
     setup-depends:

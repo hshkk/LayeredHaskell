@@ -50,7 +50,8 @@ tested-with:        GHC == 9.6.7
 -- extra-doc-files:
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
--- extra-source-files:
+extra-source-files:
+    src-exe/LH/Feature/Features
 
 common warnings
     ghc-options: -Wall
