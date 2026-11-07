@@ -46,6 +46,7 @@ import LH.Text.Token
     '<='   { LHsLexeme _ LHsTkLte          }
     '>='   { LHsLexeme _ LHsTkGte          }
     '=='   { LHsLexeme _ LHsTkEqEq         }
+    '/='   { LHsLexeme _ LHsTkNotEq        }
     'if'   { LHsLexeme _ LHsTkIf           }
     'then' { LHsLexeme _ LHsTkThen         }
     'else' { LHsLexeme _ LHsTkElse         }
@@ -55,7 +56,7 @@ import LH.Text.Token
 %right 'else'
 %left '||'
 %left '&&'
-%nonassoc '=='
+%nonassoc '==' '/='
 %nonassoc '<' '>' '<=' '>='
 %left '+' '-'
 %left '*'
@@ -83,10 +84,11 @@ Expr :: { LHsExpr }
     | Expr '<=' Expr        { LHsBin LHsLte $1 $3 }
     | Expr '>=' Expr        { LHsBin LHsGte $1 $3 }
     | Expr '==' Expr        { LHsBin LHsEq  $1 $3 }
+    | Expr '==' Expr        { LHsBin LHsNeq $1 $3 }
     | '-' Expr %prec NEG    { LHsNeg $2 }
 
 Atom :: { LHsExpr }
-    : int          { LHsInt $1 }
+    : int    { LHsInt $1 }
 
 -------------------------------------------------------------------------------
 -- Types

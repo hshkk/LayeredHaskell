@@ -55,6 +55,7 @@ data LHsToken
     | LHsTkGte             -- ^ A right angle bracket and an equals sign @<=@.
     -- Equality
     | LHsTkEqEq            -- ^ A double equals sign @==@.
+    | LHsTkNotEq           -- ^ A forward slash followed by an equals sign @/=@.
     -- List operators
     | LHsTkColon           -- ^ A colon @:@.
     | LHsTkPlusPlus        -- ^ A double plus @++@.

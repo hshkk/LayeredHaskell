@@ -133,6 +133,7 @@ tokens :-
     ">="                      { token LHsTkGte      }
     -- Equality
     "=="                      { token LHsTkEqEq     }
+    "/="                      { token LHsTkNotEq    }
     -- List operators
     ":"                       { token LHsTkColon    }
     "++"                      { token LHsTkPlusPlus }
