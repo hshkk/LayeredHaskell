@@ -14,6 +14,7 @@ import qualified Data.Set as Set
 
 import LH.Data.Feature      (registry, merge, generate)
 import LH.Text.Happy.Pretty (pprHappy)
+import LH.Text.Label        (infoLabel, warnLabel)
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
@@ -26,8 +27,8 @@ main = do
         []       -> superimpose
         ["info"] -> generate
         _        -> do
-            putStrLn $ "<WARN> One or more command-line arguments were given, but they are not recognized.\n" 
-                    ++ "<INFO> Proceeding as if there were none..."
+            putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
+            putStrLn $ warnLabel "Proceeding as if there were none..."
             superimpose
 
 -- | Superimposes the features (and implicit dependencies) indicated in the @src/Features@ file.
@@ -46,7 +47,7 @@ superimpose = do
             forM_ (Map.toList happy) (\(name, gram) -> do
                 let out = pprHappy gram
                 length out `seq` writeIfChanged (qualify (end name) ++ ".y") out)
-    putStrLn $ "<INFO> Done!"
+    putStrLn $ infoLabel "Done!"
     where
         qualify file = "src/LH/Feature/" ++ file
         end = reverse . takeWhile (/= '.') . reverse
@@ -60,4 +61,4 @@ writeIfChanged path new = do
     old <- if exists then readFile' path else pure ""
     unless (exists && old == new) $ do
         writeFile path new
-        putStrLn $ "<INFO> Updated source file " ++ path
+        putStrLn $ infoLabel "Updated source file " ++ path
