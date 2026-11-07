@@ -41,7 +41,7 @@ superimpose = do
         Left err -> die err
         Right (haskell, happy) -> do
             forM_ (Map.toList haskell) (\(name, modl) -> do
-                let out = prettyPrint modl
+                let out = "{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl
                 length out `seq` writeIfChanged (qualify (end name) ++ ".hs") out)
             forM_ (Map.toList happy) (\(name, gram) -> do
                 let out = pprHappy gram
