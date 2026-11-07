@@ -45,6 +45,7 @@ import Language.Haskell.Syntax
 import Language.Haskell.Parser
 
 import LH.Control.Superimposition ((-->))
+import LH.Text.Label (infoLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -139,7 +140,7 @@ order reg names = fmap reverse (traverse acyclic (Graph.stronglyConnComp nodes))
         nodes = [ (name, name, Set.toList (Set.unions (dependsOn feat <> impliedBy feat)))
                 | (name, feat) <- Map.toList (Map.restrictKeys reg names) ]
         acyclic (Graph.AcyclicSCC name)   = Right name
-        acyclic (Graph.CyclicSCC members) = Left ("<ERROR> These features have cyclic dependencies: " ++ unwords members)
+        acyclic (Graph.CyclicSCC members) = Left ("These features have cyclic dependencies: " ++ unwords members)
 
 -- | Lists every problem with a set of feature names.
 --   An empty result means that there are no problems with the set.
@@ -157,7 +158,7 @@ resolve :: Registry -> FeatureSet -> Either String [Feature]
 resolve reg names = do
     let selected = select reg names
         errs     = check reg selected
-    unless (null errs) (Left (unlines errs))
+    unless (null errs) (Left (intercalate "\n" errs))
     fmap (map (reg Map.!)) (order reg selected)
 
 -- | Reads and parses the files corresponding to a language feature, 
@@ -210,25 +211,21 @@ merge reg names = case resolve reg names of
             Right pairs -> do
                 let (modls, grams) = unzip pairs
                 return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
-    where
-        infoLabel msg = "<INFO> " ++ msg
-        errLabel msg = "<ERROR> " ++ msg
 
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
 --   with dependencies and implications automatically resolved.
 --   Dependencies that must be manually enabled are printed in color.
 generate :: IO ()
 generate = do
-    putStrLn "<INFO> Listing all (non-redundant) feature combinations..."
-    putStrLn "<INFO> Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually, the rest can be automatically resolved."
-    mapM_ (putStrLn . ("<INFO> " ++) . unwords)
-        [ map (paint feats) names
-        | feats <- Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry))
-        , Right names@(_:_) <- [resolve registry feats >> order registry feats]
-        ]
+    putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
+    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually, the rest can be automatically resolved."
+    either (putStrLn . errLabel) (mapM_ (putStrLn . infoLabel . unwords) . filter (not . null))
+        (traverse line (filter (null . check registry)
+                               (Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry)))))
     where
         step name acc = Set.union acc (Set.map (select registry . Set.insert name) acc)
-        paint feats name
+        line feats = fmap (map (color feats)) (order registry feats)
+        color feats name
             | name `Set.member` select registry (Set.delete name feats) = name
             | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
 
