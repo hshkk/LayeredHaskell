@@ -20,6 +20,8 @@ module LH.Data.Feature (
     Registry, registry,
     -- ** Merging features
     FeatureSet, merge,
+    -- ** Generating feature combinations
+    generate,
     -- * Dependencies
     Dependency (..),
     -- ** Convenient synonyms
@@ -37,12 +39,15 @@ import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
+import Happy.Frontend (parseYFileContents)
 import Happy.Frontend.AbsSyn
 import Language.Haskell.Syntax
 import Language.Haskell.Parser
 
 import LH.Control.Superimposition ((-->))
-import Happy.Frontend (parseYFileContents)
+
+-------------------------------------------------------------------------------
+-- Features
 
 -- | The name of a 'LH.Data.Feature.Feature'.
 type FeatureName = String
@@ -208,6 +213,24 @@ merge reg names = case resolve reg names of
     where
         infoLabel msg = "<INFO> " ++ msg
         errLabel msg = "<ERROR> " ++ msg
+
+-- | Generates and prints a list of all possible (non-redundant) feature combinations, 
+--   with dependencies and implications automatically resolved.
+--   Dependencies that must be manually enabled are printed in color.
+generate :: IO ()
+generate = do
+    putStrLn "<INFO> Listing all (non-redundant) feature combinations..."
+    putStrLn "<INFO> Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually, the rest can be automatically resolved."
+    mapM_ (putStrLn . ("<INFO> " ++) . unwords)
+        [ map (paint feats) names
+        | feats <- Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry))
+        , Right names@(_:_) <- [resolve registry feats >> order registry feats]
+        ]
+    where
+        step name acc = Set.union acc (Set.map (select registry . Set.insert name) acc)
+        paint feats name
+            | name `Set.member` select registry (Set.delete name feats) = name
+            | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
 
 -------------------------------------------------------------------------------
 -- Dependencies

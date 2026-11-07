@@ -1,23 +1,39 @@
 module Main where
 
-import Control.Monad    (forM_, unless)
-import System.Directory (createDirectoryIfMissing, doesFileExist)
-import System.FilePath  (takeDirectory)
-import System.Exit      (die)
-import System.IO        (readFile')
+import Control.Monad      (forM_, unless)
+import System.Directory   (createDirectoryIfMissing, doesFileExist)
+import System.Environment (getArgs)
+import System.FilePath    (takeDirectory)
+import System.Exit        (die)
+import System.IO          (readFile')
 
 import Language.Haskell.Pretty (prettyPrint)
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import LH.Data.Feature      (registry, merge)
+import LH.Data.Feature      (registry, merge, generate)
 import LH.Text.Happy.Pretty (pprHappy)
+
+-- | The @LayeredHaskell-make@ executable facilitates superimposition.
+--   If @info@ is passed in as a command-line argument, 
+--   a list of all possible (non-redundant) feature combinations is printed.
+--   See 'generate'.
+main :: IO ()
+main = do
+    args <- getArgs
+    case args of
+        []       -> superimpose
+        ["info"] -> generate
+        _        -> do
+            putStrLn $ "<WARN> One or more command-line arguments were given, but they are not recognized.\n" 
+                    ++ "<INFO> Proceeding as if there were none..."
+            superimpose
 
 -- | Superimposes the features (and implicit dependencies) indicated in the @src/Features@ file.
 --   Outputs files to @src/LH/Feature/@.
-main :: IO ()
-main = do
+superimpose :: IO ()
+superimpose = do
     args <- readFile "LayeredHaskell-make/src-exe/LH/Feature/Features"
     let names = filter (not . null) (lines args)
     merged <- merge registry (Set.fromList names)
