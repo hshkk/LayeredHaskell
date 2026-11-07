@@ -45,6 +45,7 @@ data LHsBin
     | LHsGte
     -- Equality
     | LHsEq
+    | LHsNeq
     deriving (Eq, Show)
 
 -- | A value.
