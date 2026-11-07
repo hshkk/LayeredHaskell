@@ -83,7 +83,7 @@ data LHsToken
     ---------------------------------------------------------------------------
     -- Virtual tokens inserted by layout
     | LHsTkVOpen           -- ^ A /virtual/ opening brace.
-    | LHsTkVClose          -- ^ A /virtual/ opening brace.
+    | LHsTkVClose          -- ^ A /virtual/ closing brace.
     | LHsTkVSemi           -- ^ A /virtual/ semicolon.
     ---------------------------------------------------------------------------
     -- End-of-file
