@@ -220,10 +220,11 @@ generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
     putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually, the rest can be automatically resolved."
     either (putStrLn . errLabel) (mapM_ (putStrLn . infoLabel . unwords) . filter (not . null))
-        (traverse line (Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry))))
+        (traverse line (filter (null . check registry)
+                               (Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry)))))
     where
         step name acc = Set.union acc (Set.map (select registry . Set.insert name) acc)
-        line feats = fmap (map (color feats)) (resolve registry feats >> order registry feats)
+        line feats = fmap (map (color feats)) (order registry feats)
         color feats name
             | name `Set.member` select registry (Set.delete name feats) = name
             | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
