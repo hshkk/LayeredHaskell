@@ -23,10 +23,14 @@ name:               LayeredHaskell
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:
+synopsis: A friendly layered implementation of a subset of Haskell.
 
 -- A longer description of the package.
--- description:
+description: 
+    Layered Haskell is a layered functional language in which users can enable and disable various language features at will. 
+    .
+    The modularity of Layered Haskell enables language variants and tailored error messages that provide a gentle introduction to
+    functional programming for novices. It also supports the exploration and implementation of language extensions and their dependencies.
 
 -- The license under which the package is released.
 license:            MIT
@@ -43,14 +47,20 @@ maintainer:         kimhang@oregonstate.edu
 -- A copyright notice.
 -- copyright:
 category:           Language
-build-type:         Simple
+build-type:         Custom
 tested-with:        GHC == 9.6.7
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
--- extra-doc-files:
+extra-doc-files:
+    README.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
+
+custom-setup
+    setup-depends:
+        , base  ^>=4.18.3.0
+        , Cabal ^>=3.10
 
 common warnings
     ghc-options: -Wall
@@ -61,6 +71,8 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        LH.Feature.AbsSyn
+        LH.Feature.Parser
         LH.Text.Lexer
         LH.Text.Token
         LH.Text.Parser.Monad
@@ -73,15 +85,17 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    
-        , array      ^>=0.5.8
-        , base       ^>=4.18.3.0
-        , bytestring ^>=0.11.5
-        , errata     ^>=0.4.0
-        , mtl        ^>=2.3.1
-        , text       ^>=2.0.2
+        , array       ^>=0.5.8
+        , base        ^>=4.18.3.0
+        , bytestring  ^>=0.11.5
+        , containers  ^>=0.6.7
+        , errata      ^>=0.4.0
+        , mtl         ^>=2.3.1
+        , text        ^>=2.0.2
 
     build-tool-depends:
-        , alex:alex  ^>=3.2.7.4
+        , alex:alex   ^>=3.2.7.4
+        , happy:happy ^>=1.20.1.1
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -104,8 +118,14 @@ executable LayeredHaskell
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base        ^>=4.18.3.0
         , LayeredHaskell
+        , base        ^>=4.18.3.0
+        , text        ^>=2.0.2
+
+    build-tool-depends:
+        , LayeredHaskell-make:LayeredHaskell-make
+        , alex:alex   ^>=3.2.7.4
+        , happy:happy ^>=1.20.1.1
 
     -- Directories containing source files.
     hs-source-dirs:   src-exe
@@ -138,7 +158,7 @@ test-suite LayeredHaskell-test
 
     -- Test dependencies.
     build-depends:
-        , base  ^>=4.18.3.0
-        , HUnit ^>=1.6.2.0
         , LayeredHaskell
-        , text  ^>=2.0.2
+        , base       ^>=4.18.3.0
+        , hspec      ^>=2.11.18
+        , text       ^>=2.0.2

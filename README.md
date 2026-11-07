@@ -24,7 +24,19 @@ Some useful commands are as follows.
 | `cabal build` | Compiles libraries and executables within the current project. |
 | `cabal run`  | Compiles and executes the project's main executable. |
 
-For most, invoking `cabal update` then `cabal run` will suffice: it will automatically update and build the prerequisite libraries and executables.
+## Enabling Features
+
+To enable (or disable) features, edit the [`LayeredHaskell-make/src-exe/LH/Features`](LayeredHaskell-make/src-exe/LH/Feature/Features) text file. (This will be changed in the future.) 
+
+Features must take the names defined in `registry` under the [`LH.Data.Feature`](LayeredHaskell-make/src-exe/LH/Data/Feature.hs) module, and each must be placed on its own line.
+
+## Execution
+
+The main executable can be invoked as follows. (Alternatively, `exes` can be replaced with `LayeredHaskell`.)
+```
+cabal run exes -- <filepath>
+```
+Currently, the file located at `<filepath>` will be parsed, and its abstract syntax tree will be printed (provided that there are no parse errors). This will soon be fed into a typechecker and then an interpreter.
 
 ## Disclaimer
 

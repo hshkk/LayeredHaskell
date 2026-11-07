@@ -12,7 +12,7 @@ This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for
 | `cabal build` | Compiles libraries and executables within the current project. |
 | `cabal run`  | Compiles and executes the project's main executable. |
 | `cabal repl` | Opens an interactive session loaded with the project's components. |
-| `cabal test` | Compiles and executes the project's test suites, which can be found [here](test/). |
+| `cabal test` | Compiles and executes the project's test suites, which can be found [here](test/). The test suite uses the [hspec](https://hackage.haskell.org/package/hspec) testing framework. |
 | `cabal haddock` | Generates [Haddock](https://hackage.haskell.org/package/haddock) HTML documentation for the project. |
 
 The `.cabal` file for this project can be found [here](LayeredHaskell.cabal).
