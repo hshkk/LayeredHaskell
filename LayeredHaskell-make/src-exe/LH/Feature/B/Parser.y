@@ -84,7 +84,7 @@ Expr :: { LHsExpr }
     | Expr '<=' Expr        { LHsBin LHsLte $1 $3 }
     | Expr '>=' Expr        { LHsBin LHsGte $1 $3 }
     | Expr '==' Expr        { LHsBin LHsEq  $1 $3 }
-    | Expr '==' Expr        { LHsBin LHsNeq $1 $3 }
+    | Expr '/=' Expr        { LHsBin LHsNeq $1 $3 }
     | '-' Expr %prec NEG    { LHsNeg $2 }
 
 Atom :: { LHsExpr }
