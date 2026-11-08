@@ -174,11 +174,11 @@ check reg names =
 --  
 --   'resolve' generates an error if any of the following are true.
 --       * One or more 'hidden' features were manually enabled.
---       * The registry is ill-formed in that it contains unknown features.
---       * The enabled features have a dependency that cannot be ambiguously resolved.
+--       * The 'registry' is ill-formed in that it contains unknown features.
+--       * The enabled features have a dependency that cannot be unambiguously resolved.
 --
--- The last case occurs when a feature @A@ depends on features @B@ /or/ @C@, but only @A@ was manually enabled.
--- To avoid an arbitrary choice between @B@ or @C@, an error is generated.
+--   The last case occurs when, say, a feature @A@ depends on features @B@ /or/ @C@, but only @A@ was manually enabled.
+--   To avoid an arbitrary choice between @B@ and @C@, an error is generated.
 resolve :: Registry -> FeatureSet -> Either String [Feature]
 resolve reg names = do
     let hide =
