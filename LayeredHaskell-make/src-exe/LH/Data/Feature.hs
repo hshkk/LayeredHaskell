@@ -130,6 +130,11 @@ registry = Map.fromList
                     (Has "E")
                     None
                     False)
+    , ("P", feature ["P/AbsSyn.hs"]
+                    (Just ("P/Parser.y"))
+                    (Has "D")
+                    None
+                    False)
     ]
 
 -------------------------------------------------------------------------------

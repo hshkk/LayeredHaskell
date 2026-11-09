@@ -16,6 +16,8 @@ module LH.Feature.AbsSyn (
     LHsExpr (..),
     -- ** Patterns
     LHsPat (..),
+    -- ** Types
+    LHsType (..),
     ) where
 
 import Data.Sequence (Seq)
@@ -31,4 +33,9 @@ data LHsPat
     | LHsPCon Id            -- ^ A constructor pattern entry.
     | LHsPWild              -- ^ A wildcard pattern entry.
     | LHsPPats (Seq LHsPat) -- ^ A sublist pattern entry.
+    deriving (Eq, Show)
+
+-- | A type.
+data LHsType
+    = LHsTyFn LHsType LHsType -- ^ A function type variable
     deriving (Eq, Show)

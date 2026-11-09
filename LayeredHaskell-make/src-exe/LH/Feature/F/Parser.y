@@ -41,6 +41,7 @@ import LH.Text.Token
     '_'  { LHsLexeme _ LHsTkUnderscore }
 
 %left LAM
+%left FN
 
 %%
 
@@ -49,9 +50,6 @@ import LH.Text.Token
 
 -------------------------------------------------------------------------------
 -- Declarations
-
-Tsig :: { Seq LHsType }
-     : Tsig '->' Type { $1 |> $3 }
 
 -- A sequence of patterns (separated by juxtaposition).
 Pats :: { Seq LHsPat }
@@ -69,3 +67,9 @@ Pat :: { LHsPat }
     | con          { LHsPCon $1 }
     | '_'          { LHsPWild }
     | '(' Pats ')' { LHsPPats $2 }
+
+-------------------------------------------------------------------------------
+-- Types
+
+Type :: { LHsType }
+    : TyAtom '->' Type %prec FN { LHsTyFn $1 $3 }

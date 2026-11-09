@@ -58,27 +58,20 @@ import LH.Text.Token
 -- Declarations
 
 -- A sequence of constructor declarations (separated by pipes).
-Cons :: { Seq (Id, Seq LHsType) }
-    : {- ε -}         { Seq.empty }
-    | Con             { Seq.singleton $1 }
-    | Cons '|' Con    { $1 |> $3 }
+Cons :: { Seq LHsType }
+     : Con             { Seq.singleton $1 }
+     | Cons '|' Con    { $1 |> $3 }
 
--- A constructor declaration.
-Con :: { (Id, Seq LHsType) }
-    : con             { ($1, Seq.empty) }
-    | Con TyAtom      { let (c, xs) = $1 in (c, xs |> $2) }
-    -- ^ TODO: Add type applications to TyAtom in P.
+Con :: { LHsType }
+    : con TyVars { LHsTyCon $1 $2 }
 
 -- A single declaration.
 Decl :: { LHsDecl }
-    : 'data' con TyVars '=' Cons { LHsData $2 $3 $5 }
-
--- Type variables. (D has none.)
-TyVars :: { Seq Id }
-    : {- ε -}         { Seq.empty }
+    : 'data' Con '=' Cons { LHsData $2 $4 }
 
 -------------------------------------------------------------------------------
 -- Types
 
-TyAtom :: { LHsType }
-    : con  { LHsTyCon $1 }
+-- Type variables. (D has none.)
+TyVars :: { Seq Id }
+       : {- ε -}         { Seq.empty }
