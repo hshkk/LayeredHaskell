@@ -82,6 +82,8 @@ data Feature = Feature
         -- ^ What features imply \(f\) /in disjunctive normal form/.
         --
         --   @{{A}, {B, C}}@ means @A@ or (@B@ and @C@). See 'dnf'.
+    , hidden    :: Bool
+        -- ^ If 'True', \(f\) may only be enabled automatically.
     }
 
 -- | Builds a 'Feature' \(f\) specified in terms of values of type 'Dependency'.
@@ -93,10 +95,14 @@ feature
     -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@).
     -> Dependency        -- ^ What \(f\) depends on. See 'dependsOn'.
     -> Dependency        -- ^ What implies \(f\). See 'impliedBy'.
+    -> Bool              -- ^ Whether \(f\) may only be enabled automatically. See 'hidden'.
     -> Feature
-feature modls gram depends implied =
-    Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied)
+feature modls gram depends implied hide =
+    Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
     where qualify file = "LayeredHaskell-make/src-exe/LH/Feature/" ++ file
+
+-------------------------------------------------------------------------------
+-- Registries
 
 -- | A registry maps names to their 'Feature's.
 type Registry = Map FeatureName Feature
@@ -107,16 +113,22 @@ registry = Map.fromList
     [ ("E", feature ["E/AbsSyn.hs"]
                     (Just ("E/Parser.y"))
                     None
-                    None)
+                    None
+                    True)
     , ("B", feature ["B/AbsSyn.hs"]
                     (Just ("B/Parser.y"))
                     (Has "E")
-                    None)
+                    None
+                    False)
     , ("D", feature ["D/AbsSyn.hs"]
                     (Just ("D/Parser.y"))
                     (Has "E")
-                    None)
+                    None
+                    False)
     ]
+
+-------------------------------------------------------------------------------
+-- Merging features
 
 -- | A feature set is a set of features, which we simply identify by their names.
 type FeatureSet = Set FeatureName
@@ -142,20 +154,42 @@ order reg names = fmap reverse (traverse acyclic (Graph.stronglyConnComp nodes))
         acyclic (Graph.AcyclicSCC name)   = Right name
         acyclic (Graph.CyclicSCC members) = Left ("These features have cyclic dependencies: " ++ unwords members)
 
+-- | Lists every unknown feature name.
+unknown :: Registry -> FeatureSet -> [String]
+unknown reg names =
+    [ "Unknown feature: " ++ name
+    | name <- Set.toList (Set.filter (`Map.notMember` reg) names) ]
+
 -- | Lists every problem with a set of feature names.
 --   An empty result means that there are no problems with the set.
 check :: Registry -> FeatureSet -> [String]
 check reg names =
-    [ "Unknown feature: " ++ name
-    | name <- Set.toList (Set.filter (`Map.notMember` reg) names) ] ++
+    unknown reg names ++
     [ "Can't automatically resolve dependencies of " ++ name ++ ", explicitly enable one of: " ++ unwords (Set.toList clause)
     | (name, feat) <- Map.toList (Map.restrictKeys reg names)
     , clause <- Set.toList (dependsOn feat)
     , Set.disjoint clause names ]
 
 -- | Decides which features are really needed for a selection.
+--  
+--   'resolve' generates an error if any of the following are true.
+--       * One or more 'hidden' features were manually enabled.
+--       * The 'registry' is ill-formed in that it contains unknown features.
+--       * The enabled features have a dependency that cannot be unambiguously resolved.
+--
+--   The last case occurs when, say, a feature @A@ depends on features @B@ /or/ @C@, but only @A@ was manually enabled.
+--   To avoid an arbitrary choice between @B@ and @C@, an error is generated.
 resolve :: Registry -> FeatureSet -> Either String [Feature]
 resolve reg names = do
+    let hide =
+            [ name
+            | name <- Set.toList names
+            , Just feat <- [Map.lookup name reg]
+            , hidden feat
+            ]
+    unless (null hide) $
+        Left ("Hidden features cannot be selected directly: "
+              ++ intercalate " " hide)
     let selected = select reg names
         errs     = check reg selected
     unless (null errs) (Left (intercalate "\n" errs))
@@ -212,19 +246,31 @@ merge reg names = case resolve reg names of
                 let (modls, grams) = unzip pairs
                 return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
 
+-------------------------------------------------------------------------------
+-- Generating feature combinations
+
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
 --   with dependencies and implications automatically resolved.
 --   Dependencies that must be manually enabled are printed in color.
 generate :: IO ()
 generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
-    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually, the rest can be automatically resolved."
-    either (putStrLn . errLabel) (mapM_ (putStrLn . infoLabel . unwords) . filter (not . null))
-        (traverse line (filter (null . check registry)
-                               (Set.toList (foldr step (Set.singleton (select registry Set.empty)) (Map.keys registry)))))
+    putStrLn $ infoLabel "Only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
+            ++ "The rest can be automatically resolved."
+    let combos = do
+            mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
+            traverse (\feats -> fmap (map (color feats)) (order registry feats)) 
+                    (filter (null . check registry)
+                            (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc)) 
+                                               (Set.singleton (select registry Set.empty)) 
+                                               (Map.keys (Map.filter (not . hidden) registry)))))
+    either (putStrLn . errLabel) report combos
     where
-        step name acc = Set.union acc (Set.map (select registry . Set.insert name) acc)
-        line feats = fmap (map (color feats)) (order registry feats)
+        report combos = do
+            let shown = filter (not . null) combos
+            mapM_ (putStrLn . infoLabel . unwords) shown
+            putStrLn $ infoLabel (show (length shown)) ++ " feature combinations found!"
+        -- | Colors only non-redundant features.
         color feats name
             | name `Set.member` select registry (Set.delete name feats) = name
             | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
