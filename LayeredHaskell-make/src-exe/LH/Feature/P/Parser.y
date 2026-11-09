@@ -54,5 +54,4 @@ TyVars :: { Seq Id }
        : var TyVars    { $1 <| $2 }
 
 TyAtom :: { LHsType }
-       : Con { $1 }
-       | var { LHsTyPVar $1 }
+       : var { LHsTyPVar $1 }

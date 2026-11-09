@@ -130,6 +130,11 @@ registry = Map.fromList
                     (Has "E")
                     None
                     False)
+    , ("C", feature ["C/AbsSyn.hs"]
+                    (Just ("C/Parser.y"))
+                    (None)
+                    (All [Has "D", Has "F"])
+                    True)
     , ("P", feature ["P/AbsSyn.hs"]
                     (Just ("P/Parser.y"))
                     (Has "D")

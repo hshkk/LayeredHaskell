@@ -75,3 +75,6 @@ Decl :: { LHsDecl }
 -- Type variables. (D has none.)
 TyVars :: { Seq Id }
        : {- ε -}         { Seq.empty }
+
+TyAtom :: { LHsType }
+       : Con { $1 }
