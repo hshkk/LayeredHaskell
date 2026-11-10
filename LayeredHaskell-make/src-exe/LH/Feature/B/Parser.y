@@ -52,10 +52,6 @@ import LH.Text.Token
     'if'    { LHsLexeme _ LHsTkIf            }
     'then'  { LHsLexeme _ LHsTkThen          }
     'else'  { LHsLexeme _ LHsTkElse          }
-    'Int'   { LHsLexeme _ (LHsTkCon "Int")   }
-    'Bool'  { LHsLexeme _ (LHsTkCon "Bool")  }
-    'True'  { LHsLexeme _ (LHsTkCon "True")  }
-    'False' { LHsLexeme _ (LHsTkCon "False") }
 
 %right 'else'
 %left '||'
@@ -99,13 +95,16 @@ Atom :: { LHsExpr }
 
 PatAtom :: { LHsPat }
     : int     { LHsPInt $1 }
-    -- These will be "overridden" by a single "con" rule in D, if enabled together.
-    | 'True'  { LHsPCon "True" Seq.empty }
-    | 'False' { LHsPCon "False" Seq.empty }
+    -- This rule is more general than it needs to be due to an
+    -- unintended interaction with other features. 
+    -- This shouldn't cause any issues, since B only will define True and False as vaild pattern constructors.
+    | con     { LHsPCon $1 Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Types
 
 TyAtom :: { LHsType }
-    : 'Int'  { LHsTyCon "Int" Seq.empty }
-    | 'Bool' { LHsTyCon "Bool" Seq.empty }
+    -- This rule is more general than it needs to be due to an
+    -- unintended interaction with other features. 
+    -- This shouldn't cause any issues, since B only will define True and False as vaild pattern constructors.
+    : con     { LHsTyCon $1 Seq.empty }

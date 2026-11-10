@@ -115,6 +115,9 @@ Pats :: { Seq LHsPat }
 -- The following rules are intentionally non-terminating, since E has no meaningful types.
 
 Type :: { LHsType }
+    : TyApp         { $1 }
+
+TyApp :: { LHsType }
     : TyAtom { $1 }
 
 TyAtom :: { LHsType }

@@ -40,7 +40,7 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Types
 
-Type :: { LHsType }
+TyApp :: { LHsType }
        : con TyAtoms    { LHsTyCon $1 $2 }
 
 TyAtoms :: { Seq LHsType }

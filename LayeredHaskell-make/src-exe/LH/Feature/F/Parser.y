@@ -75,4 +75,5 @@ PatAtom :: { LHsPat }
 -- Types
 
 Type :: { LHsType }
-    : TyAtom '->' Type { LHsTyFn $1 $3 }
+    : TyApp '->' Type { LHsTyFn $1 $3 }
+
