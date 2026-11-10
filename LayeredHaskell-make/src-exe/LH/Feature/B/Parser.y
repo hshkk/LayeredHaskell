@@ -97,7 +97,7 @@ PatAtom :: { LHsPat }
     : int     { LHsPInt $1 }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
-    -- This shouldn't cause any issues, since B only will define True and False as vaild pattern constructors.
+    -- This shouldn't cause any issues, since B only defines True and False as valid pattern constructors.
     | con     { LHsPCon $1 Seq.empty }
 
 -------------------------------------------------------------------------------
@@ -106,5 +106,5 @@ PatAtom :: { LHsPat }
 TyAtom :: { LHsType }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
-    -- This shouldn't cause any issues, since B only will define True and False as vaild pattern constructors.
+    -- This shouldn't cause any issues, since B only defines Int and Bool as valid type constructors.
     : con     { LHsTyCon $1 Seq.empty }
