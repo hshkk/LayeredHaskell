@@ -18,6 +18,8 @@ module LH.Feature.Parser (
     parseProgram
     ) where
 
+import Data.Sequence (Seq)
+
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
@@ -69,6 +71,12 @@ import LH.Text.Token
 -- Rules
 
 -------------------------------------------------------------------------------
+-- Declarations
+
+Decl :: { LHsDecl }
+    : var '::' Type     { LHsSig $1 $3 }
+
+-------------------------------------------------------------------------------
 -- Expressions
 
 Expr :: { LHsExpr }
@@ -94,5 +102,5 @@ Atom :: { LHsExpr }
 -- Types
 
 TyAtom :: { LHsType }
-    : 'Int'  { LHsTyCon "Int"  }
-    | 'Bool' { LHsTyCon "Bool" }
+    : 'Int'  { LHsTyCon "Int" Seq.empty }
+    | 'Bool' { LHsTyCon "Bool" Seq.empty }

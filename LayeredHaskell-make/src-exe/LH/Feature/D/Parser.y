@@ -56,6 +56,8 @@ import LH.Text.Token
 
 -------------------------------------------------------------------------------
 -- Declarations
+Decl :: { LHsDecl }
+    : var '::' Type     { LHsSig $1 $3 }
 
 -- A sequence of constructor declarations (separated by pipes).
 Cons :: { Seq LHsType }

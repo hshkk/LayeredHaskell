@@ -55,5 +55,5 @@ data LHsVal
 
 -- | A type.
 data LHsType
-    = LHsTyCon Id                  -- ^ A nullary type constructor.
+    = LHsTyCon Id (Seq Id)           -- ^ A type constructor.
     deriving (Eq, Show)
