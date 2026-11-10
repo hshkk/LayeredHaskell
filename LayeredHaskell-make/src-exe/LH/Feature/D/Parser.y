@@ -42,6 +42,7 @@ import LH.Text.Token
 %token
     con    { LHsLexeme _ (LHsTkCon $$) }
     'data' { LHsLexeme _ LHsTkData }
+    'type' { LHsLexeme _ LHsTkType }
     '='    { LHsLexeme _ LHsTkEq }
     '|'    { LHsLexeme _ LHsTkPipe }
     '('    { LHsLexeme _ LHsTkLParen }
@@ -71,6 +72,7 @@ Con :: { (Id, Seq LHsType) }
 -- A single declaration.
 Decl :: { LHsDecl }
     : 'data' con TyVars '=' Cons { LHsData $2 $3 $5 }
+    | 'type' con TyVars '=' Type { LHsType $2 $3 $5 }
 
 -------------------------------------------------------------------------------
 -- Patterns

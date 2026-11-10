@@ -70,7 +70,7 @@ data LHsToken
     | LHsTkLBrack          -- ^ A left bracket @[@.
     | LHsTkRBrack          -- ^ A right bracket @]@.
     | LHsTkComma           -- ^ A comma @,@.
-    | LHsTkUnderscore      -- ^ A underscore @_@.
+    | LHsTkUnderscore      -- ^ An underscore @_@.
     ---------------------------------------------------------------------------
     -- Keywords
     | LHsTkLet             -- ^ The keyword @let@.

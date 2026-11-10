@@ -30,6 +30,7 @@ data LHsDecl
                                      --   avoid rewriting it again for @P@.
                                      --   In @D@, the sequence will /always/ be empty, 
                                      --   a property guaranteed by the parser.
+    | LHsType Id (Seq Id) LHsType    -- ^ A type synonym.
     deriving (Eq, Show)
 
 {-# WARNING LHsType "D has no accessible patterns. The following is only used when F is enabled." #-}
