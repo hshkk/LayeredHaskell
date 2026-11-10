@@ -56,8 +56,11 @@ import LH.Text.Token
 
 -------------------------------------------------------------------------------
 -- Declarations
+
+-- A single declaration
 Decl :: { LHsDecl }
     : var '::' Type     { LHsSig $1 $3 }
+    | 'data' Con '=' Cons { LHsData $2 $4 }
 
 -- A sequence of constructor declarations (separated by pipes).
 Cons :: { Seq LHsType }
@@ -66,10 +69,6 @@ Cons :: { Seq LHsType }
 
 Con :: { LHsType }
     : con TyVars { LHsTyCon $1 $2 }
-
--- A single declaration.
-Decl :: { LHsDecl }
-    : 'data' Con '=' Cons { LHsData $2 $4 }
 
 -------------------------------------------------------------------------------
 -- Types

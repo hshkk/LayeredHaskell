@@ -115,6 +115,7 @@ Type :: { LHsType }
 
 TyAtom :: { LHsType }
     : '(' Type ')' { $2 }
+    | '(' ')'      { LHsTyUnit }
 
 {
 -- | Gives the parser the next token. 

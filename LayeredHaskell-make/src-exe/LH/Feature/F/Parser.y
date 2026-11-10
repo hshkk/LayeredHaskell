@@ -59,7 +59,7 @@ Pats :: { Seq LHsPat }
 -- Expressions
 
 Expr :: { LHsExpr }
-     : '\\' Pats '->' Expr %prec LAM { LHsLam $2 $4 }
+     : '\\' Pat Pats '->' Expr %prec LAM { LHsLam ($2 <| $3) $5 }
 
 -- Atomic pattern
 Pat :: { LHsPat }
