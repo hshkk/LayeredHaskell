@@ -98,6 +98,10 @@ Expr :: { LHsExpr }
 Atom :: { LHsExpr }
     : int    { LHsInt $1 }
 
+-- Atomic pattern
+Pat :: { LHsPat }
+    : int    { LHsPInt $1 }
+
 -------------------------------------------------------------------------------
 -- Types
 

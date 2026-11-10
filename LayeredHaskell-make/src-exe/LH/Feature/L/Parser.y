@@ -96,9 +96,9 @@ ChainPat :: { Seq LHsPat }
 -- Types
 
 TyAtom :: { LHsType }
-    : '[' Con ']'                     { LHsTyList $2 }
-    | '(' Con ',' Con CommaSepCon ')' { LHsTyTuple ($2 <| ($4 <| $5)) }
+    : '[' TyAtom ']'                       { LHsTyList $2 }
+    | '(' TyAtom ',' TyAtom CommaSepTy ')' { LHsTyTuple ($2 <| ($4 <| $5)) }
 
-CommaSepCon :: { Seq LHsType }
-    : ',' Con CommaSepCon { $2 <| $3 }
-    | {- ε -}             { Seq.empty }
+CommaSepTy :: { Seq LHsType }
+    : ',' TyAtom CommaSepTy { $2 <| $3 }
+    | {- ε -}               { Seq.empty }
