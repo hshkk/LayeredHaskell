@@ -19,7 +19,7 @@ module LH.Feature.Parser (
 
 import Control.Monad.Except (throwError)
 
-import Data.Sequence (Seq, (|>))
+import Data.Sequence (Seq, (|>), (<|))
 import Data.Text     (Text)
 
 import qualified Data.Sequence as Seq
