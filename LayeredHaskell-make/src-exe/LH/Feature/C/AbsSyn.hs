@@ -19,4 +19,4 @@ module LH.Feature.AbsSyn (
 import Data.Sequence (Seq)
 
 data LHsExpr
-    = LHsCase LHsExpr (Seq (LHsPat, LHsExpr)) -- ^ A variable.
+    = LHsCase LHsExpr (Seq (LHsPat, LHsExpr)) -- ^ A case expression.
