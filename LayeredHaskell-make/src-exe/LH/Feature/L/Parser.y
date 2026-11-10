@@ -44,7 +44,7 @@ import LH.Text.Token
     ']'  {LHsLexeme _ LHsTkRBrack }
     ','  {LHsLexeme _ LHsTkComma }
 
-%left '++'
+%right ':' '++'
 
 %%
 
@@ -52,45 +52,39 @@ import LH.Text.Token
 -- Rules
 
 -------------------------------------------------------------------------------
--- Declarations
-
--------------------------------------------------------------------------------
 -- Expressions
 
 Expr :: { LHsExpr }
-    : '[' ListExpr ']'                   { LHsList $2 }
-    | '(' Expr ',' Expr CommaSepExpr ')' { LHsTuple ($2 <| ($4 <| $5)) }
-    | '(' Expr ':' Expr ChainExpr ')'    { LHsListChain ($2 <| ($4 <| $5)) }
-    | Expr '++' Expr { LHsConcat $1 $3 }
+    : '[' ListExpr ']'                        { LHsList $2 }
+    | '(' Expr ',' Expr CommaExprs ')'        { LHsTuple ($2 <| ($4 <| $5)) }
+    | Expr ':' Expr                           { LHsListCons $1 $3 }
+    | Expr '++' Expr                          { LHsListAppend $1 $3 }
 
 ListExpr :: { Seq LHsExpr }
-    : Expr CommaSepExpr { $1 <| $2 }
-    | {- ε -}           { Seq.empty }
+    : Expr CommaExprs                         { $1 <| $2 }
+    | {- ε -}                                 { Seq.empty }
 
-CommaSepExpr :: { Seq LHsExpr }
-    : ',' Expr CommaSepExpr { $2 <| $3 }
-    | {- ε -}               { Seq.empty }
+CommaExprs :: { Seq LHsExpr }
+    : ',' Expr CommaExprs                     { $2 <| $3 }
+    | {- ε -}                                 { Seq.empty }
 
-ChainExpr :: { Seq LHsExpr }
-    : ':' Expr ChainExpr { $2 <| $3 }
-    | {- ε -}            { Seq.empty }
+-------------------------------------------------------------------------------
+-- Patterns
 
 Pat :: { LHsPat }
-    : '[' ListPat ']'                 { LHsPList $2 }
-    | '(' Pat ',' Pat CommaSepPat ')' { LHsPTuple ($2 <| ($4 <| $5)) }
-    | '(' Pat ':' Pat ChainPat ')'    { LHsPListChain ($2 <| ($4 <| $5)) }
+    : PatAtom ':' Pat                         { LHsPListCons $1 $3 }
+
+PatAtom :: { LHsPat }
+    : '[' ListPat ']'                         { LHsPList $2 }
+    | '(' Pat ',' Pat CommaPats ')'           { LHsPTuple ($2 <| ($4 <| $5)) }
 
 ListPat :: { Seq LHsPat }
-    : Pat CommaSepPat { $1 <| $2 }
-    | {- ε -}         { Seq.empty }
+    : Pat CommaPats                           { $1 <| $2 }
+    | {- ε -}                                 { Seq.empty }
 
-CommaSepPat :: { Seq LHsPat }
-    : ',' Pat CommaSepPat { $2 <| $3 }
-    | {- ε -}             { Seq.empty }
-
-ChainPat :: { Seq LHsPat }
-    : ':' Pat ChainPat { $2 <| $3 }
-    | {- ε -}          { Seq.empty }
+CommaPats :: { Seq LHsPat }
+    : ',' Pat CommaPats                       { $2 <| $3 }
+    | {- ε -}                                 { Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Types

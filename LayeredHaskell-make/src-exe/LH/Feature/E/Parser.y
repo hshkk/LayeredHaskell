@@ -83,11 +83,7 @@ Decls :: { Seq LHsDecl }
 -- A single declaration.
 Decl :: { LHsDecl }
     : var Pats '=' Expr { LHsEqn $1 $2 $4 }
-
--- A sequence of patterns (separated by juxtaposition).
--- E contains no patterns, so this rule is empty.
-Pats :: { Seq LHsPat }
-    : {- ε -}           { Seq.empty }
+    | var '::' Type     { LHsSig $1 $3 }
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -106,6 +102,14 @@ Atom :: { LHsExpr }
     | '(' Expr ')' { $2 }
 
 -------------------------------------------------------------------------------
+-- Patterns
+
+-- A sequence of patterns (separated by juxtaposition).
+-- E contains no patterns, so this rule is empty.
+Pats :: { Seq LHsPat }
+    : {- ε -}           { Seq.empty }
+
+-------------------------------------------------------------------------------
 -- Types
 --
 -- The following rules are intentionally non-terminating, since E has no meaningful types.
@@ -115,7 +119,6 @@ Type :: { LHsType }
 
 TyAtom :: { LHsType }
     : '(' Type ')' { $2 }
-    | '(' ')'      { LHsTyUnit }
 
 {
 -- | Gives the parser the next token. 

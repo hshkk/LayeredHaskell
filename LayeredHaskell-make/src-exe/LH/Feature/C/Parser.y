@@ -47,20 +47,14 @@ import LH.Text.Token
 -- Rules
 
 -------------------------------------------------------------------------------
--- Declarations
-
--------------------------------------------------------------------------------
 -- Expressions
 
 Expr :: { LHsExpr }
-     : 'case' Expr 'of' OPEN CaseAlt CaseAlts CLOSE { LHsCase $2 ($5 <| $6) }
+     : 'case' Expr 'of' OPEN CaseAlt CaseAlts End { LHsCase $2 ($5 <| $6) }
 
 CaseAlts :: { Seq (LHsPat, LHsExpr) }
-         : SEMI CaseAlt CaseAlts { $2 <| $3 }
-         | {- ε -}               { Seq.empty }
+         : SEMI CaseAlt CaseAlts                  { $2 <| $3 }
+         | {- ε -}                                { Seq.empty }
 
-CaseAlt :: { (LHsPat, LHsExpr) }
-        : Pat '->' Expr { ($1, $3) }
--------------------------------------------------------------------------------
--- Types
-
+CaseAlt :: { LHsAlt }
+        : Pat '->' Expr                           { ($1, $3) }

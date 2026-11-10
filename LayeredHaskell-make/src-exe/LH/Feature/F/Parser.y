@@ -41,7 +41,6 @@ import LH.Text.Token
     '_'  { LHsLexeme _ LHsTkUnderscore }
 
 %left LAM
-%left FN
 
 %%
 
@@ -53,7 +52,7 @@ import LH.Text.Token
 
 -- A sequence of patterns (separated by juxtaposition).
 Pats :: { Seq LHsPat }
-     : Pat Pats { $1 <| $2 }
+     : PatAtom Pats { $1 <| $2 }
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -61,15 +60,19 @@ Pats :: { Seq LHsPat }
 Expr :: { LHsExpr }
      : '\\' Pat Pats '->' Expr %prec LAM { LHsLam ($2 <| $3) $5 }
 
--- Atomic pattern
+-------------------------------------------------------------------------------
+-- Patterns
+
 Pat :: { LHsPat }
+    : PatAtom      { $1 }
+
+PatAtom :: { LHsPat }
     : var          { LHsPVar $1 }
-    | con          { LHsPCon $1 }
     | '_'          { LHsPWild }
-    | '(' Pats ')' { LHsPPats $2 }
+    | '(' Pat ')'  { $2 }
 
 -------------------------------------------------------------------------------
 -- Types
 
 Type :: { LHsType }
-    : TyAtom '->' Type %prec FN { LHsTyFn $1 $3 }
+    : TyAtom '->' Type { LHsTyFn $1 $3 }

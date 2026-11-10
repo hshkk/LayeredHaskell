@@ -35,23 +35,21 @@ import LH.Text.Token
 -- There must be no shift/reduce conflicts. 
 %expect 0
 
-%token
-    '->' { LHsLexeme _ LHsTkArrow }
-
 %%
-
--------------------------------------------------------------------------------
--- Rules
-
--------------------------------------------------------------------------------
--- Declarations
 
 -------------------------------------------------------------------------------
 -- Types
 
+Type :: { LHsType }
+       : con TyAtoms    { LHsTyCon $1 $2 }
+
+TyAtoms :: { Seq LHsType }
+       : TyAtom         { Seq.singleton $1 }
+       | TyAtoms TyAtom { $1 |> $2 }
+
 -- Type variables.
 TyVars :: { Seq Id }
-       : var TyVars    { $1 <| $2 }
+       : var TyVars     { $1 <| $2 }
 
 TyAtom :: { LHsType }
-       : var { LHsTyPVar $1 }
+       : var            { LHsTyVar $1 }

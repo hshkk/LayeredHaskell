@@ -64,8 +64,7 @@ data LHsPat
 
 -- {-# WARNING LHsType "E has no types. It must be accompanied by B or D." #-}
 -- -- | A type.
-data LHsType
-    = LHsTyUnit
+-- data LHsType
 
 -- | An environment of variable-value bindings.
 type LHsEnv = Map Id LHsVal

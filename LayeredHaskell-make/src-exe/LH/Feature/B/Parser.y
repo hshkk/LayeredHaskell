@@ -37,23 +37,25 @@ import LH.Text.Token
 %expect 0
 
 %token
-    int    { LHsLexeme _ (LHsTkInt $$)     }
-    '+'    { LHsLexeme _ LHsTkPlus         }
-    '-'    { LHsLexeme _ LHsTkMinus        }
-    '*'    { LHsLexeme _ LHsTkTimes        }
-    '||'   { LHsLexeme _ LHsTkOr           }
-    '&&'   { LHsLexeme _ LHsTkAnd          }
-    '<'    { LHsLexeme _ LHsTkLt           }
-    '>'    { LHsLexeme _ LHsTkGt           }
-    '<='   { LHsLexeme _ LHsTkLte          }
-    '>='   { LHsLexeme _ LHsTkGte          }
-    '=='   { LHsLexeme _ LHsTkEqEq         }
-    '/='   { LHsLexeme _ LHsTkNotEq        }
-    'if'   { LHsLexeme _ LHsTkIf           }
-    'then' { LHsLexeme _ LHsTkThen         }
-    'else' { LHsLexeme _ LHsTkElse         }
-    'Int'  { LHsLexeme _ (LHsTkCon "Int")  }
-    'Bool' { LHsLexeme _ (LHsTkCon "Bool") }
+    int     { LHsLexeme _ (LHsTkInt $$)      }
+    '+'     { LHsLexeme _ LHsTkPlus          }
+    '-'     { LHsLexeme _ LHsTkMinus         }
+    '*'     { LHsLexeme _ LHsTkTimes         }
+    '||'    { LHsLexeme _ LHsTkOr            }
+    '&&'    { LHsLexeme _ LHsTkAnd           }
+    '<'     { LHsLexeme _ LHsTkLt            }
+    '>'     { LHsLexeme _ LHsTkGt            }
+    '<='    { LHsLexeme _ LHsTkLte           }
+    '>='    { LHsLexeme _ LHsTkGte           }
+    '=='    { LHsLexeme _ LHsTkEqEq          }
+    '/='    { LHsLexeme _ LHsTkNotEq         }
+    'if'    { LHsLexeme _ LHsTkIf            }
+    'then'  { LHsLexeme _ LHsTkThen          }
+    'else'  { LHsLexeme _ LHsTkElse          }
+    'Int'   { LHsLexeme _ (LHsTkCon "Int")   }
+    'Bool'  { LHsLexeme _ (LHsTkCon "Bool")  }
+    'True'  { LHsLexeme _ (LHsTkCon "True")  }
+    'False' { LHsLexeme _ (LHsTkCon "False") }
 
 %right 'else'
 %left '||'
@@ -69,12 +71,6 @@ import LH.Text.Token
 
 -------------------------------------------------------------------------------
 -- Rules
-
--------------------------------------------------------------------------------
--- Declarations
-
-Decl :: { LHsDecl }
-    : var '::' Type     { LHsSig $1 $3 }
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -98,9 +94,14 @@ Expr :: { LHsExpr }
 Atom :: { LHsExpr }
     : int    { LHsInt $1 }
 
--- Atomic pattern
-Pat :: { LHsPat }
-    : int    { LHsPInt $1 }
+-------------------------------------------------------------------------------
+-- Patterns
+
+PatAtom :: { LHsPat }
+    : int     { LHsPInt $1 }
+    -- These will be "overridden" by a single "con" rule in D, if enabled together.
+    | 'True'  { LHsPCon "True" Seq.empty }
+    | 'False' { LHsPCon "False" Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Types

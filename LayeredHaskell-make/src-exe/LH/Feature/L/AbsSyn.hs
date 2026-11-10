@@ -23,17 +23,20 @@ module LH.Feature.AbsSyn (
 import Data.Sequence (Seq)
 
 data LHsExpr
-    = LHsList (Seq LHsExpr)      -- ^ A list of expressions.
-    | LHsTuple (Seq LHsExpr)     -- ^ A tuple of expressions.
-    | LHsListChain (Seq LHsExpr) -- ^ A chaining of expressions to a list.
-    | LHsConcat LHsExpr LHsExpr  -- ^ A list concat expression (TC must verify lists).
+    = LHsList (Seq LHsExpr)          -- ^ A list expression.
+    | LHsTuple (Seq LHsExpr)         -- ^ A tuple expression.
+    | LHsListCons LHsExpr LHsExpr    -- ^ The cons operation on lists.
+    | LHsListAppend LHsExpr LHsExpr  -- ^ The append operation on lists.
+    deriving (Eq, Show)
 
 data LHsPat
-    = LHsPList (Seq LHsPat)      -- ^ A list of patterns.
-    | LHsPTuple (Seq LHsPat)     -- ^ A tuple of patterns.
-    | LHsPListChain (Seq LHsPat) -- ^ A chaining of patterns from a list.
+    = LHsPList (Seq LHsPat)          -- ^ A list pattern.
+    | LHsPTuple (Seq LHsPat)         -- ^ A tuple pattern.
+    | LHsPListCons LHsPat LHsPat     -- ^ The cons pattern on lists.
+    deriving (Eq, Show)
 
 data LHsType
-    = LHsTyList LHsType        -- ^ A list type.
-    | LHsTyTuple (Seq LHsType) -- ^ A tuple type.
+    = LHsTyList LHsType              -- ^ The list type.
+    | LHsTyTuple (Seq LHsType)       -- ^ A tuple type.
+    deriving (Eq, Show)
 

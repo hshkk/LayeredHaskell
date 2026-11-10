@@ -18,4 +18,4 @@ module LH.Feature.AbsSyn (
 
 -- | A type.
 data LHsType
-    = LHsTyPVar Id  -- ^ A polymorphic variable type
+    = LHsTyVar Id  -- ^ A type variable.

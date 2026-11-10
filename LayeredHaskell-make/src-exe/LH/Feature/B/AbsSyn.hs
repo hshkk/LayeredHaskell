@@ -57,9 +57,11 @@ data LHsVal
 
 -- | A type.
 data LHsType
-    = LHsTyCon Id (Seq Id)           -- ^ A type constructor.
+    = LHsTyCon Id (Seq LHsType)    -- ^ A type constructor.
     deriving (Eq, Show)
 
 -- | A pattern.
 data LHsPat
-    = LHsPInt Int   -- ^ A pattern integer.
+    = LHsPInt Int                  -- ^ A literal integer pattern.
+    | LHsPCon Id (Seq LHsPat)      -- ^ A pattern constructor.
+    deriving (Eq, Show)

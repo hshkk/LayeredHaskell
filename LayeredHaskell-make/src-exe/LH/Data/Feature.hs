@@ -127,13 +127,13 @@ registry = Map.fromList
                     False)
     , ("F", feature ["F/AbsSyn.hs"]
                     (Just ("F/Parser.y"))
-                    (Has "E")
+                    (Has "E" /\ (Has "B" \/ Has "D"))
                     None
                     False)
     , ("C", feature ["C/AbsSyn.hs"]
                     (Just ("C/Parser.y"))
                     None
-                    (All [Has "D", Has "F"])
+                    (Has "D" /\ Has "F")
                     True)
     , ("P", feature ["P/AbsSyn.hs"]
                     (Just ("P/Parser.y"))
@@ -142,7 +142,7 @@ registry = Map.fromList
                     False)
     , ("L", feature ["L/AbsSyn.hs"]
                     (Just ("L/Parser.y"))
-                    (All [Has "D", Has "F"])
+                    (Has "D" /\ Has "F")
                     None
                     False)
     ]

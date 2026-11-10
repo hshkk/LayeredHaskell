@@ -24,18 +24,16 @@ import Data.Sequence (Seq)
 
 -- | An expression.
 data LHsExpr
-    = LHsLam (Seq LHsPat) LHsExpr   -- ^ A lambda expression.
+    = LHsLam (Seq LHsPat) LHsExpr   -- ^ A lambda abstraction.
     deriving (Eq, Show)
 
 -- | A pattern.
 data LHsPat
-    = LHsPVar Id            -- ^ A variable pattern entry.
-    | LHsPCon Id            -- ^ A constructor pattern entry.
-    | LHsPWild              -- ^ A wildcard pattern entry.
-    | LHsPPats (Seq LHsPat) -- ^ A sublist pattern entry.
+    = LHsPVar Id                    -- ^ A pattern variable.
+    | LHsPWild                      -- ^ The wildcard pattern.
     deriving (Eq, Show)
 
 -- | A type.
 data LHsType
-    = LHsTyFn LHsType LHsType -- ^ A function type variable
+    = LHsTyFn LHsType LHsType       -- ^ A function type.
     deriving (Eq, Show)

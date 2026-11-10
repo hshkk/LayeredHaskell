@@ -12,11 +12,15 @@ Stability   : experimental
 This module provides abstract syntax definitions for C.
 -}
 module LH.Feature.AbsSyn (
-    -- ** Expressions and values
-    LHsExpr (..)
+    -- * Expressions and values
+    LHsExpr (..),
+    -- ** Case alternatives
+    LHsAlt
     ) where
 
 import Data.Sequence (Seq)
 
 data LHsExpr
-    = LHsCase LHsExpr (Seq (LHsPat, LHsExpr)) -- ^ A case expression.
+    = LHsCase LHsExpr (Seq LHsAlt) -- ^ A case expression.
+
+type LHsAlt = (LHsPat, LHsExpr)
