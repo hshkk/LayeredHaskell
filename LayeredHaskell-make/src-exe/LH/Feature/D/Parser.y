@@ -77,6 +77,9 @@ Decl :: { LHsDecl }
 -------------------------------------------------------------------------------
 -- Patterns
 
+Pat :: { LHsPat }
+    : con PatApp   { LHsPCon $1 $2 }
+
 PatAtom :: { LHsPat }
     : con          { LHsPCon $1 Seq.empty }
 

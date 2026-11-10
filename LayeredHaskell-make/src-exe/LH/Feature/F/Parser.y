@@ -50,18 +50,18 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Declarations
 
--- A sequence of patterns (separated by juxtaposition).
-Pats :: { Seq LHsPat }
-     : PatAtom Pats { $1 <| $2 }
-
 -------------------------------------------------------------------------------
 -- Expressions
 
 Expr :: { LHsExpr }
-     : '\\' Pat Pats '->' Expr %prec LAM { LHsLam ($2 <| $3) $5 }
+     : '\\' PatApp '->' Expr %prec LAM { LHsLam $2 $4 }
 
 -------------------------------------------------------------------------------
 -- Patterns
+
+-- A sequence of patterns (separated by juxtaposition).
+Pats :: { Seq LHsPat }
+     : PatApp      { $1 }
 
 Pat :: { LHsPat }
     : PatAtom      { $1 }
@@ -69,7 +69,6 @@ Pat :: { LHsPat }
 PatAtom :: { LHsPat }
     : var          { LHsPVar $1 }
     | '_'          { LHsPWild }
-    | '(' Pat ')'  { $2 }
 
 -------------------------------------------------------------------------------
 -- Types
