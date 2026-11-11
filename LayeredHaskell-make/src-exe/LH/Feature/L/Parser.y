@@ -90,9 +90,9 @@ CommaPats :: { Seq LHsPat }
 -- Types
 
 TyAtom :: { LHsType }
-    : '[' TyAtom ']'                       { LHsTyList $2 }
-    | '(' TyAtom ',' TyAtom CommaSepTy ')' { LHsTyTuple ($2 <| ($4 <| $5)) }
+    : '[' Type ']'                       { LHsTyList $2 }
+    | '(' Type ',' Type CommaSepTy ')'   { LHsTyTuple ($2 <| ($4 <| $5)) }
 
 CommaSepTy :: { Seq LHsType }
-    : ',' TyAtom CommaSepTy { $2 <| $3 }
+    : ',' Type CommaSepTy   { $2 <| $3 }
     | {- ε -}               { Seq.empty }
