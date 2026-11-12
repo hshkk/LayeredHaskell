@@ -81,17 +81,17 @@ cases =
     [ Case "parser (B)"   ["B"]           (concat [e, b])
     , Case "parser (D)"   ["D"]           (concat [e, d])
     , Case "parser (BD)"  ["B", "D"]      (concat [e, b, d])
-    , Case "parser (FB)"  ["F", "B"]      (concat [e, b, fb])
-    , Case "parser (FD)"  ["F", "D"]      (concat [e, d, fd])
-    , Case "parser (FBD)" ["F", "B", "D"] (concat [e, b, fb, d, fd]) 
+    , Case "parser (FB)"  ["F", "B"]      (concat [e, b, f, fb])
+    , Case "parser (FD)"  ["F", "D"]      (concat [e, d, f, fd])
+    , Case "parser (FBD)" ["F", "B", "D"] (concat [e, b, d, f, fb, fd]) 
     , Case "parser (P)"   ["P"]           (concat [e, d, p])
-    , Case "parser (PF)"  ["P", "F"]      (concat [e, d, fd, p, fp])
+    , Case "parser (PF)"  ["P", "F"]      (concat [e, d, p, f, fd, fp])
     , Case "parser (PB)"  ["P", "B"]      (concat [e, b, d, p])
-    , Case "parser (L)"   ["L"]           (concat [e, d, fd, l])
-    , Case "parser (PL)"  ["P", "L"]      (concat [e, d, fd, l, p, fp])
-    , Case "parser (LB)"  ["L", "B"]      (concat [e, b, d, fd, l])
-    , Case "parser (PLB)" ["P", "L", "B"] (concat [e, b, d, fd, l, p, fp])
-    , Case "parser (PFB)" ["P", "F", "B"] (concat [e, b, fb, d, fd, p, fp])
+    , Case "parser (L)"   ["L"]           (concat [e, d, f, l, fd])
+    , Case "parser (PL)"  ["P", "L"]      (concat [e, d, p, f, l, fd, fp])
+    , Case "parser (LB)"  ["L", "B"]      (concat [e, b, d, f, l, fb, fd])
+    , Case "parser (PLB)" ["P", "L", "B"] (concat [e, b, d, p, f, l, fb, fd, fp])
+    , Case "parser (PFB)" ["P", "F", "B"] (concat [e, b, d, p, f, fb, fd, fp])
     ]
 
 -- Constructs a testcase input.
@@ -117,7 +117,7 @@ e =
         "z = let w = y\n        y = w\n        u = y in u"
         "LHsEqn \"z\" (fromList []) (LHsLet (fromList [LHsEqn \"w\" (fromList []) (LHsVar \"y\"),LHsEqn \"y\" (fromList []) (LHsVar \"w\"),LHsEqn \"u\" (fromList []) (LHsVar \"y\")]) (LHsVar \"u\"))"
     , source
-        "constructors"
+        "constructor"
         "w = Con"
         "LHsEqn \"w\" (fromList []) (LHsCon \"Con\")"
     ]
@@ -149,15 +149,19 @@ b =
         "f = x || False"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsOr (LHsVar \"x\") (LHsCon \"False\"))"
     , source
-        "left-associative binary operation"
+        "addition is left-associative"
         "f = x + y + z"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsBin LHsAdd (LHsVar \"x\") (LHsVar \"y\")) (LHsVar \"z\"))"
     , source
-        "arithmetic operator precedence"
+        "addition and subtraction have the same precedence"
+        "f = x + y - z"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsSub (LHsBin LHsAdd (LHsVar \"x\") (LHsVar \"y\")) (LHsVar \"z\"))"
+    , source
+        "multiplication binds tighter than addition"
         "f = x + y * z"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsVar \"x\") (LHsBin LHsMul (LHsVar \"y\") (LHsVar \"z\")))"
     , source
-        "logic operator precedence"
+        "AND binds tighter than OR"
         "f = x || y && z"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsOr (LHsVar \"x\") (LHsBin LHsAnd (LHsVar \"y\") (LHsVar \"z\")))"
     , source
@@ -170,8 +174,8 @@ b =
         "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
     , source
         "if expression with layout"
-        "g = if True && False\n    then 1\n    else 2"
-        "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
+        "g = if True == False\n    then 1\n    else 2"
+        "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsEq (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
     ]
 
 d :: [Source]
@@ -200,6 +204,22 @@ d =
         "let expressions with constructor application"
         "cyanCircleAndYellowSquare = \n    let c = cyanCircle\n        y = CS Yellow Square\n    in Pair c y"
         "LHsEqn \"cyanCircleAndYellowSquare\" (fromList []) (LHsLet (fromList [LHsEqn \"c\" (fromList []) (LHsVar \"cyanCircle\"),LHsEqn \"y\" (fromList []) (LHsApp (LHsApp (LHsCon \"CS\") (LHsCon \"Yellow\")) (LHsCon \"Square\"))]) (LHsApp (LHsApp (LHsCon \"Pair\") (LHsVar \"c\")) (LHsVar \"y\")))"
+    ]
+
+f :: [Source]
+f =
+    [ source
+        "lambda abstraction"
+        "f = \\x -> x"
+        "LHsEqn \"f\" (fromList []) (LHsLam (fromList [LHsPVar \"x\"]) (LHsVar \"x\"))"
+    , source
+        "lambda abstraction with inner application"
+        "f = \\x -> x y"
+        "LHsEqn \"f\" (fromList []) (LHsLam (fromList [LHsPVar \"x\"]) (LHsApp (LHsVar \"x\") (LHsVar \"y\")))"
+    , source
+        "application of lambda abstractions"
+        "y = (\\x -> x) (\\z -> z)"
+        "LHsEqn \"y\" (fromList []) (LHsApp (LHsLam (fromList [LHsPVar \"x\"]) (LHsVar \"x\")) (LHsLam (fromList [LHsPVar \"z\"]) (LHsVar \"z\")))"
     ]
 
 fb :: [Source]
@@ -452,4 +472,16 @@ l =
         "pattern matching with a wildcard argument"
         "z _ f = f Box"
         "LHsEqn \"z\" (fromList [LHsPWild,LHsPVar \"f\"]) (LHsApp (LHsVar \"f\") (LHsCon \"Box\"))"
+    , source
+        "cons operator"
+        "z = x:y:z:[]"
+        "LHsEqn \"z\" (fromList []) (LHsListCons (LHsVar \"x\") (LHsListCons (LHsVar \"y\") (LHsListCons (LHsVar \"z\") (LHsList (fromList [])))))"
+    , source
+        "append operator"
+        "z = x ++ y"
+        "LHsEqn \"z\" (fromList []) (LHsListAppend (LHsVar \"x\") (LHsVar \"y\"))"
+    , source
+        "append is right-associative"
+        "z = x ++ y ++ u"
+        "LHsEqn \"z\" (fromList []) (LHsListAppend (LHsVar \"x\") (LHsListAppend (LHsVar \"y\") (LHsVar \"u\")))"
     ]
