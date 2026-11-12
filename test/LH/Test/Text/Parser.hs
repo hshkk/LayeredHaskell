@@ -2,7 +2,7 @@
 -- This module provides a test suite for Layered Haskell's parsers.
 module LH.Test.Text.Parser (spec) where
 
-import Control.Monad    (forM_, unless)
+import Control.Monad    (forM_, unless, void)
 import System.Directory
 import System.Exit      (ExitCode (..))
 import System.FilePath
@@ -14,16 +14,21 @@ import Test.Hspec
 import LH.Data.Feature  (FeatureName, superimpose)
 
 spec :: Spec
-spec =
+spec = beforeAll_ build $
     forM_ cases $ \test ->
         describe (caseName test) $
         aroundAll (withBuild (caseFeats test)) $
             forM_ (caseInputs test) $ \(desc, src, expected) ->
             it desc $ \dir -> do
-                let path = dir </> "Test.hs"
-                writeFile path src
-                out <- run (dir </> "driver") [path]
+                let file = dir </> "Test.hs"
+                writeFile file src
+                out <- run (dir </> "driver") [file]
                 out `shouldBe` expected ++ "\n"
+
+-- Builds the LayeredHaskell library.
+-- This is necessary to ensure that any source files are updated before proceeding on with the parser tests.
+build :: IO ()
+build = void (run "cabal" ["build", "lib:LayeredHaskell"])
 
 -- Generates the source files for a feature combination.
 -- The tests then operate on a temporary directory named @lhs-parser-test@.
@@ -36,7 +41,7 @@ withBuild args tests = withSystemTempDirectory "lhs-parser-test" $ \dir -> do
     files <- listDirectory featureDir
     -- For each Happy file, we execute Happy to produce a set of Haskell modules.
     forM_ [file | file <- files, takeExtension file == ".y"] $ \y ->
-        run "happy" [featureDir </> y, "-o", featureDir </> replaceExtension y "hs"]
+        run "happy" [featureDir </> y, "-g", "-a", "-c", "-o", featureDir </> replaceExtension y "hs"]
     -- Then, we can run cabal on the driver file.
     _ <- run "cabal"
         [ "exec", "--", "ghc", "-O0", "-package", "LayeredHaskell", "-i" ++ dir, "-outputdir", dir </> "build"
@@ -51,6 +56,9 @@ run exe args = do
     unless (code == ExitSuccess) $
         expectationFailure (unwords (exe:args) ++ " failed:\n" ++ err ++ out)
     return out
+
+-------------------------------------------------------------------------------
+-- Testcases
 
 -- An input to be used as a testcase.
 -- (descriptor, text to parse, expected result (Show))
@@ -101,11 +109,11 @@ e =
         "x = y" 
         "LHsEqn \"x\" (fromList []) (LHsVar \"y\")"
     , source 
-        "let expressions" 
+        "let expression" 
         "y = let z = x in z" 
         "LHsEqn \"y\" (fromList []) (LHsLet (fromList [LHsEqn \"z\" (fromList []) (LHsVar \"x\")]) (LHsVar \"z\"))"
     , source
-        "let expressions with layout"
+        "let expression with layout"
         "z = let w = y\n        y = w\n        u = y in u"
         "LHsEqn \"z\" (fromList []) (LHsLet (fromList [LHsEqn \"w\" (fromList []) (LHsVar \"y\"),LHsEqn \"y\" (fromList []) (LHsVar \"w\"),LHsEqn \"u\" (fromList []) (LHsVar \"y\")]) (LHsVar \"u\"))"
     , source
@@ -118,16 +126,52 @@ b :: [Source]
 b =
     [ source
         "binary operation between integers"
-        "x :: Int\nx = 5 * 3"
-        "LHsSig \"x\" (LHsTyCon \"Int\" (fromList [])),LHsEqn \"x\" (fromList []) (LHsBin LHsMul (LHsInt 5) (LHsInt 3))"
+        "x = 5 * 3"
+        "LHsEqn \"x\" (fromList []) (LHsBin LHsMul (LHsInt 5) (LHsInt 3))"
     , source
-        "binary operation between variables and integers"
-        "f :: Int\nf = x + 1"
-        "LHsSig \"f\" (LHsTyCon \"Int\" (fromList [])),LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsVar \"x\") (LHsInt 1))"
+        "type signature with integer"
+        "x :: Int"
+        "LHsSig \"x\" (LHsTyCon \"Int\" (fromList []))"
     , source
-        "let expressions and binary operation between Booleans and variables, respectively"
-        "g :: Bool\ng = let h = True && False in h || h"
-        "LHsSig \"g\" (LHsTyCon \"Bool\" (fromList [])),LHsEqn \"g\" (fromList []) (LHsLet (fromList [LHsEqn \"h\" (fromList []) (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\"))]) (LHsBin LHsOr (LHsVar \"h\") (LHsVar \"h\")))"
+        "binary operation between variable and integer"
+        "f = x + 1"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsVar \"x\") (LHsInt 1))"
+    , source
+        "binary operation between Booleans"
+        "g = True && False"
+        "LHsEqn \"g\" (fromList []) (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\"))"
+    , source
+        "type signature with Boolean"
+        "x :: Bool"
+        "LHsSig \"x\" (LHsTyCon \"Bool\" (fromList []))"
+    , source
+        "binary operation between variable and Boolean"
+        "f = x || False"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsOr (LHsVar \"x\") (LHsCon \"False\"))"
+    , source
+        "left-associative binary operation"
+        "f = x + y + z"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsBin LHsAdd (LHsVar \"x\") (LHsVar \"y\")) (LHsVar \"z\"))"
+    , source
+        "arithmetic operator precedence"
+        "f = x + y * z"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsAdd (LHsVar \"x\") (LHsBin LHsMul (LHsVar \"y\") (LHsVar \"z\")))"
+    , source
+        "logic operator precedence"
+        "f = x || y && z"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsOr (LHsVar \"x\") (LHsBin LHsAnd (LHsVar \"y\") (LHsVar \"z\")))"
+    , source
+        "negation"
+        "f = -1"
+        "LHsEqn \"f\" (fromList []) (LHsNeg (LHsInt 1))"
+    , source
+        "if expression"
+        "g = if True && False then 1 else 2"
+        "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
+    , source
+        "if expression with layout"
+        "g = if True && False\n    then 1\n    else 2"
+        "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsAnd (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
     ]
 
 d :: [Source]
