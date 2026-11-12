@@ -9,8 +9,8 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides datatype definitions for language features (and collections of them), 
-and a merging operation on a set of features. 
+This module provides definitions for language features and operations on them,
+such as superimposition and combination generation.
 It also provides a number of definitions supporting the specification of dependencies between features.
 -}
 module LH.Data.Feature (
@@ -20,7 +20,9 @@ module LH.Data.Feature (
     Registry, registry,
     -- ** Superimposing features
     FeatureSet, superimpose,
-    -- ** Generating feature combinations
+    -- ** Listing features
+    list, listAll, listDeps,
+    -- ** Listing feature combinations
     generate, generateCombos,
     -- * Dependencies
     Dependency (..),
@@ -30,20 +32,21 @@ module LH.Data.Feature (
     cnf, dnf
     ) where
 
-import Control.Monad      (forM, forM_, unless)
-import Data.List          (intercalate)
-import Data.Map           (Map)
-import Data.Set           (Set)
-import System.Directory   (createDirectoryIfMissing, doesFileExist)
-import System.Exit        (die)
-import System.FilePath    (takeDirectory)
-import System.IO          (readFile')
+import Control.Monad    (forM, forM_, unless)
+import Data.Bifunctor   (bimap)
+import Data.List        (intercalate)
+import Data.Map         (Map)
+import Data.Set         (Set)
+import System.Directory (createDirectoryIfMissing, doesFileExist)
+import System.Exit      (die)
+import System.FilePath  (takeDirectory)
+import System.IO        (readFile')
 
-import Happy.Frontend             (parseYFileContents)
+import Happy.Frontend          (parseYFileContents)
 import Happy.Frontend.AbsSyn
 import Language.Haskell.Syntax
 import Language.Haskell.Parser
-import Language.Haskell.Pretty    (prettyPrint)
+import Language.Haskell.Pretty (prettyPrint)
 
 import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
@@ -74,12 +77,9 @@ type ModuleName = String
 --
 --   See 'feature'.
 data Feature = Feature
-    { modules   :: [FilePath]                -- ^ Haskell source files.
-    , grammar   :: Maybe FilePath
-        -- ^ A Happy grammar, if any. 
-        --   
-        --   We also include the name of the Haskell module it generates 
-        --   since Happy's abstract syntax doesn't provide that information.
+    { descrip   :: String                  -- ^ A short description of \(f\).
+    , modules   :: [FilePath]              -- ^ Haskell source files.
+    , grammar   :: Maybe FilePath          -- ^ A Happy grammar, if any.
     , dependsOn :: Set (Set FeatureName)
         -- ^ What \(f\) depends on /in conjunctive normal form/.
         --
@@ -94,17 +94,20 @@ data Feature = Feature
 
 -- | Builds a 'Feature' \(f\) specified in terms of values of type 'Dependency'.
 --   The two 'Dependency' arguments are automatically converted into the respective normal forms. See 'cnf' and 'dnf'.
+--   
+--   The filepaths 'feature' expects should be written relative to @LayeredHaskell-make\/src\/LH\/Feature\/@.
 --
---   Since 'feature' takes 'Dependency' arguments, it's easier to construct features using this over the original constructor 'Feature'.
+--   Note that since 'feature' takes 'Dependency' arguments, it's easier to construct features using this over the original constructor 'Feature'.
 feature
-    :: [FilePath]        -- ^ Haskell source files (specified /relatively/, e.g. @E/AbsSyn.hs@).
-    -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@).
+    :: String            -- ^ A short description of \(f\). See 'descrip'.
+    -> [FilePath]        -- ^ Haskell source files (specified /relatively/, e.g. @E/AbsSyn.hs@). See 'modules'.
+    -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@). See' grammar'.
     -> Dependency        -- ^ What \(f\) depends on. See 'dependsOn'.
     -> Dependency        -- ^ What implies \(f\). See 'impliedBy'.
     -> Bool              -- ^ Whether \(f\) may only be enabled automatically. See 'hidden'.
     -> Feature
-feature modls gram depends implied hide =
-    Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
+feature desc modls gram depends implied hide =
+    Feature desc (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
     where qualify file = "LayeredHaskell-make/src/LH/Feature/" ++ file
 
 -------------------------------------------------------------------------------
@@ -114,39 +117,66 @@ feature modls gram depends implied hide =
 type Registry = Map FeatureName Feature
 
 -- | The set of /all/ features.
+--
+--   ==== __Features__
+--
+--   Layered Haskell defines the following features.
+--   Hidden features are /italicized/.
+--
+--      [@E@]: /Expressions/.
+--             All other features, whether it be directly or indirectly, depends on @E@.
+--      [@B@]: Basic types, namely @Int@ and @Bool@.
+--             Depends on @E@.
+--      [@D@]: (Monomorphic) algebraic datatypes.
+--             Depends on @E@.
+--      [@F@]: Functions and basic pattern matching.
+--             Depends on @E@ and (@B@ or @D@).
+--      [@C@]: /Case expressions/.
+--             Implied by @F@ and @D@.
+--      [@P@]: Prenex polymorphism (with implicit @forall@s).
+--             Depends on @D@.
+--      [@L@]: List and tuple syntax.
+--             Depends on @F@ and @D@.
 registry :: Registry
 registry = Map.fromList
-    [ ("E", feature ["E/AbsSyn.hs"]
+    [ ("E", feature "Expressions"
+                    ["E/AbsSyn.hs"]
                     (Just ("E/Parser.y"))
                     None
                     None
                     True)
-    , ("B", feature ["B/AbsSyn.hs"]
+    , ("B", feature "Basic types"
+                    ["B/AbsSyn.hs"]
                     (Just ("B/Parser.y"))
                     (Has "E")
                     None
                     False)
-    , ("D", feature ["D/AbsSyn.hs"]
+    , ("D", feature "Monomorphic algebraic datatypes"
+                    ["D/AbsSyn.hs"]
                     (Just ("D/Parser.y"))
                     (Has "E")
                     None
                     False)
-    , ("F", feature ["F/AbsSyn.hs"]
+    , ("F", feature "Functions"
+                    ["F/AbsSyn.hs"]
                     (Just ("F/Parser.y"))
                     (Has "E" /\ (Has "B" \/ Has "D"))
                     None
                     False)
-    , ("C", feature ["C/AbsSyn.hs"]
+    , ("C", feature "Case expressions"
+                    ["C/AbsSyn.hs"]
                     (Just ("C/Parser.y"))
                     None
                     (Has "D" /\ Has "F")
                     True)
-    , ("P", feature ["P/AbsSyn.hs"]
+    , ("P", feature "Prenex polymorphism"
+                    ["P/AbsSyn.hs"]
                     (Just ("P/Parser.y"))
                     (Has "D")
                     None
                     False)
-    , ("L", feature ["L/AbsSyn.hs"]
+    , ("L", feature "List and tuple syntax"
+                    ["L/AbsSyn.hs"]
                     (Just ("L/Parser.y"))
                     (Has "D" /\ Has "F")
                     None
@@ -303,7 +333,56 @@ writeIfChanged path new = do
         putStrLn $ infoLabel "Updated source file " ++ path
 
 -------------------------------------------------------------------------------
--- Generating feature combinations
+-- Listing features
+
+list :: IO ()
+list = do
+    putStrLn $ infoLabel "Listing features..."
+    mapM_ (putStrLn . infoLabel . entry . bimap paint descrip) 
+          (Map.toList (Map.filter (not . hidden) registry))
+    where
+        entry (name, desc) = name ++ ": " ++ desc
+        paint name = "\ESC[35m" ++ name ++ "\ESC[0m"
+
+listAll :: IO ()
+listAll = do
+    putStrLn $ infoLabel "Listing all features..."
+    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features can be enabled manually."
+    mapM_ (putStrLn . infoLabel . entry . (\(name, feat) -> (paint (name, hidden feat), descrip feat))) 
+          (Map.toList registry)
+    where
+        entry (name, desc) = name ++ ": " ++ desc
+        paint (name, True)  = name
+        paint (name, False) = "\ESC[35m" ++ name ++ "\ESC[0m"
+
+listDeps :: IO ()
+listDeps = do
+    putStrLn $ infoLabel "Listing all dependencies and joint implications..."
+    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features can be enabled manually."
+    mapM_ (putStrLn . infoLabel . entry . (\(name, feat) -> (paint (name, hidden feat), dependsOn feat, impliedBy feat))) 
+          (Map.toList registry)
+    where
+        entry (name, dep, imp) 
+            | Set.null dep && Set.null imp = name ++ ": \ESC[1;31mnone\ESC[0m"
+            | otherwise = 
+                name ++ ": " 
+                     ++ (if Set.null dep 
+                         then "" 
+                         else "depends on " ++ rewrite " or " " and " (map Set.toList (Set.toList dep)))
+                     ++ (if Set.null imp 
+                         then "" 
+                         else (if Set.null dep 
+                               then "" 
+                               else ", ") ++ "implied by " ++ rewrite " and " " or " (map Set.toList (Set.toList imp)))
+        -- Pretty-prints a value of type [[FeatureName]].
+        rewrite inner outer xss = intercalate outer
+            [ if length xs > 1 && length xss > 1 then "(" ++ s ++ ")" else s
+            | xs <- xss, let s = intercalate inner xs ]
+        paint (name, True)  = name
+        paint (name, False) = "\ESC[35m" ++ name ++ "\ESC[0m"
+
+-------------------------------------------------------------------------------
+-- Listing feature combinations
 
 -- | Generates a list of all feature combinations.
 combos :: Either String [[(FeatureName, Bool)]]
@@ -324,19 +403,21 @@ combos = do
 generate :: IO ()
 generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
-    putStrLn $ infoLabel "Only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
+    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
             ++ "The rest can be automatically resolved."
     either (putStrLn . errLabel) report combos
     where
-        report rows = do
-            mapM_ (putStrLn . infoLabel . unwords . map paint) rows
-            putStrLn $ infoLabel (show (length rows)) ++ " feature combinations found!"
+        report entries = do
+            mapM_ (putStrLn . infoLabel . unwords . map paint) entries
+            putStrLn $ infoLabel (show (length entries)) ++ " feature combinations found!"
         paint (name, True)  = "\ESC[35m" ++ name ++ "\ESC[0m"
         paint (name, False) = name
 
 -- | Produces the feature combinations colored by 'generate'.
 generateCombos :: IO [[FeatureName]]
-generateCombos = either (ioError . userError . errLabel) (return . filter (not . null) . map (map fst . filter snd)) combos
+generateCombos = either (ioError . userError . errLabel) 
+                        (return . filter (not . null) . map (map fst . filter snd)) 
+                        combos
 
 -------------------------------------------------------------------------------
 -- Dependencies

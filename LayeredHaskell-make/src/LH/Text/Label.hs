@@ -13,7 +13,7 @@ This module provides definitions for prepending labels to strings.
 -}
 module LH.Text.Label (
     -- * Labeling
-    infoLabel, 
+    infoLabel, hintLabel,
     -- ** Warnings and errors
     warnLabel, errLabel
     ) where
@@ -22,10 +22,14 @@ module LH.Text.Label (
 infoLabel :: String -> String
 infoLabel msg = "<INFO>  " ++ msg
 
--- | Prepends a yellow @"\<WARN\>"@ label to a string.
-warnLabel :: String -> String
-warnLabel msg = "\ESC[33m<WARN>\ESC[0m  " ++ msg
+-- | Prepends a bold @"\<HINT\>"@ label to a string, and colors everything blue.
+hintLabel :: String -> String
+hintLabel msg = "\ESC[1;34m<HINT>\ESC[0m  \ESC[34m" ++ msg ++ "\ESC[0m"
 
--- | Prepends a bold red @"\<ERROR\>"@ label to a string.
+-- | Prepends a bold @"\<WARN\>"@ label to a string, and colors everything yellow.
+warnLabel :: String -> String
+warnLabel msg = "\ESC[1;33m<WARN>\ESC[0m  \ESC[33m" ++ msg ++ "\ESC[0m"
+
+-- | Prepends a bold @"\<ERROR\>"@ label to a string, and colors everything red.
 errLabel :: String -> String
-errLabel msg = "\ESC[1;31m<ERROR>\ESC[0m " ++ msg
+errLabel msg = "\ESC[1;31m<ERROR>\ESC[0m \ESC[31m" ++ msg ++ "\ESC[0m"
