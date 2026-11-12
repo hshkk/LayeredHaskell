@@ -18,8 +18,8 @@ module LH.Data.Feature (
     FeatureName, ModuleName, Feature (..), feature,
     -- ** Registries
     Registry, registry,
-    -- ** Merging features
-    FeatureSet, merge,
+    -- ** Superimposing features
+    FeatureSet, superimpose,
     -- ** Generating feature combinations
     generate,
     -- * Dependencies
@@ -30,22 +30,28 @@ module LH.Data.Feature (
     cnf, dnf
     ) where
 
-import Control.Monad (forM, unless)
-import Data.List     (intercalate)
-import Data.Map      (Map)
-import Data.Set      (Set)
+import Control.Monad      (forM, forM_, unless)
+import Data.List          (intercalate)
+import Data.Map           (Map)
+import Data.Set           (Set)
+import System.Directory   (createDirectoryIfMissing, doesFileExist)
+import System.Exit        (die)
+import System.FilePath    (takeDirectory)
+import System.IO          (readFile')
+
+import Happy.Frontend             (parseYFileContents)
+import Happy.Frontend.AbsSyn
+import Language.Haskell.Syntax
+import Language.Haskell.Parser
+import Language.Haskell.Pretty    (prettyPrint)
 
 import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
-import Happy.Frontend (parseYFileContents)
-import Happy.Frontend.AbsSyn
-import Language.Haskell.Syntax
-import Language.Haskell.Parser
-
 import LH.Control.Superimposition ((-->))
-import LH.Text.Label (infoLabel, errLabel)
+import LH.Text.Happy.Pretty       (pprHappy)
+import LH.Text.Label              (infoLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -99,7 +105,7 @@ feature
     -> Feature
 feature modls gram depends implied hide =
     Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
-    where qualify file = "LayeredHaskell-make/src-exe/LH/Feature/" ++ file
+    where qualify file = "LayeredHaskell-make/src/LH/Feature/" ++ file
 
 -------------------------------------------------------------------------------
 -- Registries
@@ -265,6 +271,35 @@ merge reg names = case resolve reg names of
             Right pairs -> do
                 let (modls, grams) = unzip pairs
                 return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
+
+-- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
+--   The directory should written in the format, say, @src/LH/Feature/@, since 'superimpose' simply appends it to the front of the filepath. 
+superimpose :: [FeatureName] -> FilePath -> IO ()
+superimpose names dir = do
+    merged <- merge registry (Set.fromList names)
+    case merged of
+        Left err -> die err
+        Right (haskell, happy) -> do
+            forM_ (Map.toList haskell) (\(name, modl) -> do
+                let out = "{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl
+                length out `seq` writeIfChanged (dir ++ (end name) ++ ".hs") out)
+            forM_ (Map.toList happy) (\(name, gram) -> do
+                let out = pprHappy gram
+                length out `seq` writeIfChanged (dir ++ (end name) ++ ".y") out)
+    putStrLn $ infoLabel "Done!"
+    where
+        end = reverse . takeWhile (/= '.') . reverse
+
+-- | Writes to a file only if its content differs.
+--   This way, we don't need to recompile everything on every build.
+writeIfChanged :: FilePath -> String -> IO ()
+writeIfChanged path new = do
+    createDirectoryIfMissing True (takeDirectory path)
+    exists <- doesFileExist path
+    old <- if exists then readFile' path else pure ""
+    unless (exists && old == new) $ do
+        writeFile path new
+        putStrLn $ infoLabel "Updated source file " ++ path
 
 -------------------------------------------------------------------------------
 -- Generating feature combinations

@@ -63,9 +63,6 @@ Expr :: { LHsExpr }
 Pats :: { Seq LHsPat }
      : PatApp      { $1 }
 
-Pat :: { LHsPat }
-    : PatAtom      { $1 }
-
 PatAtom :: { LHsPat }
     : var          { LHsPVar $1 }
     | '_'          { LHsPWild }

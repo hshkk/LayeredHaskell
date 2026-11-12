@@ -109,6 +109,9 @@ Atom :: { LHsExpr }
 Pats :: { Seq LHsPat }
     : {- ε -}           { Seq.empty }
 
+Pat :: { LHsPat }
+    : PatAtom      { $1 }
+
 PatApp :: { Seq LHsPat }
     : PatAtom Pats      { $1 <| $2 }
 
