@@ -27,6 +27,7 @@ synopsis: Superimposition of Happy and Haskell program fragments.
 
 -- A longer description of the package.
 description:
+    .
     In Layered Haskell, language features are implemented as
     program fragments that are systematically merged to produce a set of source files.
     We call this merging operation /superimposition/, 

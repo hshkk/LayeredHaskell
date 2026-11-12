@@ -273,7 +273,8 @@ merge reg names = case resolve reg names of
                 return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
---   The directory should written in the format, say, @src/LH/Feature/@, since 'superimpose' simply appends it to the front of the filepath. 
+--   The directory should written in the format, say, @src\/LH\/Feature\/@, 
+--   since 'superimpose' simply appends it to the front of the filepath. 
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
     merged <- merge registry (Set.fromList names)
@@ -333,8 +334,7 @@ generate = do
         paint (name, True)  = "\ESC[35m" ++ name ++ "\ESC[0m"
         paint (name, False) = name
 
--- | Generates a list of just the feature combinations that contribute to 'generate'.
---   (It might be that we need a better term for "feature combination".)
+-- | Produces the feature combinations colored by 'generate'.
 generateCombos :: IO [[FeatureName]]
 generateCombos = either (ioError . userError . errLabel) (return . filter (not . null) . map (map fst . filter snd)) combos
 
@@ -370,7 +370,7 @@ infixr 2 \/
 combine :: Ord a => Set (Set a) -> Set (Set a) -> Set (Set a)
 combine xs ys = Set.map (uncurry Set.union) (Set.cartesianProduct xs ys)
 
--- | Computes the conjunctive normal form (CNF) represented by a 'Dependency'.
+-- | Computes the conjunctive normal form (CNF) of a 'Dependency'.
 --   See 'LH.Data.Feature.dependsOn'.
 --
 --   CNF denotes a set of requirements, each a set of features that must /all/ be enabled.
@@ -380,7 +380,7 @@ cnf (Has name) = Set.singleton (Set.singleton name)
 cnf (Any deps) = foldr (combine . cnf) (Set.singleton Set.empty) deps
 cnf (All deps) = foldMap cnf deps
 
--- | Computes the disjunctive normal form (DNF) represented by a 'Dependency'.
+-- | Computes the disjunctive normal form (DNF) of a 'Dependency'.
 --   See 'LH.Data.Feature.impliedBy'.
 --
 --   DNF denotes a set of alternatives, each a set of features that of which /one/ must be enabled.

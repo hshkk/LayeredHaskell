@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides definitions source positions and tokens.
+This module provides definitions for source positions and tokens.
 -}
 module LH.Text.Token (
     -- * Source positions
@@ -39,23 +39,28 @@ data LHsToken
     -- Literals
     | LHsTkInt    !Int     -- ^ An integer literal.
     ---------------------------------------------------------------------------
-    -- Operators
+    -- Arrow operator
     | LHsTkArrow           -- ^ An arrow @->@.
+    ---------------------------------------------------------------------------
     -- Arithmetic operators
     | LHsTkPlus            -- ^ A plus @+@.
     | LHsTkMinus           -- ^ A hyphen @-@.
     | LHsTkTimes           -- ^ An asterisk @*@.
+    ---------------------------------------------------------------------------
     -- Logical operators
     | LHsTkOr              -- ^ A double pipe @||@.
     | LHsTkAnd             -- ^ A double ampersand @&&@.
+    ---------------------------------------------------------------------------
     -- Relational operators
     | LHsTkLt              -- ^ A left angle bracket @<@.
     | LHsTkGt              -- ^ A right angle bracket @>@.
     | LHsTkLte             -- ^ A left angle bracket and an equals sign @<=@.
     | LHsTkGte             -- ^ A right angle bracket and an equals sign @<=@.
+    ---------------------------------------------------------------------------
     -- Equality
     | LHsTkEqEq            -- ^ A double equals sign @==@.
     | LHsTkNotEq           -- ^ A forward slash followed by an equals sign @/=@.
+    ---------------------------------------------------------------------------
     -- List operators
     | LHsTkColon           -- ^ A colon @:@.
     | LHsTkPlusPlus        -- ^ A double plus @++@.
