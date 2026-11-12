@@ -1,3 +1,7 @@
+-------------------------------------------------------------------------------
+-- This module serves as the driver for Layered Haskell's parser tests.
+-- An abstract syntax tree is printed out by this program, 
+-- which is then checked against an expected output.
 module Main (main) where
 
 import System.Environment (getArgs)
