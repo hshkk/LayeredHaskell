@@ -21,7 +21,7 @@ module LH.Data.Feature (
     -- ** Superimposing features
     FeatureSet, superimpose,
     -- ** Generating feature combinations
-    generate,
+    generate, generateCombos,
     -- * Dependencies
     Dependency (..),
     -- ** Convenient synonyms
@@ -304,6 +304,19 @@ writeIfChanged path new = do
 -------------------------------------------------------------------------------
 -- Generating feature combinations
 
+-- | Generates a list of all feature combinations.
+combos :: Either String [[(FeatureName, Bool)]]
+combos = do
+    mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
+    fmap (filter (not . null)) $
+        traverse (\feats -> fmap (map (\name -> (name, manual feats name))) (order registry feats))
+                 (filter (null . check registry)
+                         (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc))
+                                            (Set.singleton (select registry Set.empty))
+                                            (Map.keys (Map.filter (not . hidden) registry)))))
+    where
+        manual feats name = not (name `Set.member` select registry (Set.delete name feats))
+
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
 --   with dependencies and implications automatically resolved.
 --   Dependencies that must be manually enabled are printed in color.
@@ -312,23 +325,18 @@ generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
     putStrLn $ infoLabel "Only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
             ++ "The rest can be automatically resolved."
-    let combos = do
-            mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
-            traverse (\feats -> fmap (map (color feats)) (order registry feats)) 
-                    (filter (null . check registry)
-                            (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc)) 
-                                               (Set.singleton (select registry Set.empty)) 
-                                               (Map.keys (Map.filter (not . hidden) registry)))))
     either (putStrLn . errLabel) report combos
     where
-        report combos = do
-            let shown = filter (not . null) combos
-            mapM_ (putStrLn . infoLabel . unwords) shown
-            putStrLn $ infoLabel (show (length shown)) ++ " feature combinations found!"
-        -- | Colors only non-redundant features.
-        color feats name
-            | name `Set.member` select registry (Set.delete name feats) = name
-            | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
+        report rows = do
+            mapM_ (putStrLn . infoLabel . unwords . map paint) rows
+            putStrLn $ infoLabel (show (length rows)) ++ " feature combinations found!"
+        paint (name, True)  = "\ESC[35m" ++ name ++ "\ESC[0m"
+        paint (name, False) = name
+
+-- | Generates a list of just the feature combinations that contribute to 'generate'.
+--   (It might be that we need a better term for "feature combination".)
+generateCombos :: IO [[FeatureName]]
+generateCombos = either (ioError . userError . errLabel) (return . filter (not . null) . map (map fst . filter snd)) combos
 
 -------------------------------------------------------------------------------
 -- Dependencies
