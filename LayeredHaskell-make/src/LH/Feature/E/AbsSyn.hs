@@ -35,8 +35,8 @@ type Id = Text
 
 -- | A declaration.
 data LHsDecl
-    = LHsEqn Id (Seq LHsPat) LHsExpr -- ^ An equation.
-    | LHsSig Id LHsType              -- ^ A type signature.
+    = LHsEqn  Id (Seq LHsPat) LHsExpr -- ^ An equation.
+    | LHsSig  Id LHsType              -- ^ A type signature.
     deriving (Eq, Show)
 
 -- | An expression.

@@ -51,24 +51,26 @@ tested-with:        GHC == 9.6.7
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 extra-source-files:
-    src-exe/LH/Feature/Features
+    src/LH/Feature/Features
+    src/LH/Feature/**/*.hs
+    src/LH/Feature/**/*.y
 
 common warnings
     ghc-options: -Wall
 
-executable LayeredHaskell-make
+library
     -- Import common warning flags.
     import:           warnings
 
-    -- .hs or .lhs file containing the Main module.
-    main-is:          Main.hs
-
-    -- Modules included in this executable, other than Main.
-    other-modules:
+    -- Modules exported by the library.
+    exposed-modules:
         LH.Control.Superimposition
         LH.Data.Feature
         LH.Text.Label
         LH.Text.Happy.Pretty
+
+    -- Modules included in this library but not exported..
+    -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -82,6 +84,30 @@ executable LayeredHaskell-make
         , happy-lib   ^>=2.2
         , haskell-src ^>=1.0.4
         , text        ^>=2.0.2
+
+    -- Directories containing source files.
+    hs-source-dirs:   src
+
+    -- Base language which the package is written in.
+    default-language: Haskell2010
+
+executable LayeredHaskell-make
+    -- Import common warning flags.
+    import:           warnings
+
+    -- .hs or .lhs file containing the Main module.
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:
+        , LayeredHaskell-make
+        , base        ^>=4.18.3.0
 
     -- Directories containing source files.
     hs-source-dirs:   src-exe

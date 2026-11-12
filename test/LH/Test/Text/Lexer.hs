@@ -99,7 +99,7 @@ variables = describe "variables" $ do
     "foo bar"   `lexesTo` [LHsTkVar "foo", LHsTkVar "bar"]
     "x1 x_2 x'" `lexesTo` [LHsTkVar "x1", LHsTkVar "x_2", LHsTkVar "x'"]
     "_x"        `lexesTo` [LHsTkVar "_x"]
-    "_"         `lexesTo` [LHsTkVar "_"]
+    "_"         `lexesTo` [LHsTkUnderscore]
     "xY"        `lexesTo` [LHsTkVar "xY"]
 
 constructors :: Spec
@@ -149,7 +149,7 @@ lambdasAndApplications = describe "lambdas and applications" $ do
     "\\x->2"       `lexesTo` [LHsTkLam, LHsTkVar "x", LHsTkArrow, LHsTkInt 2]
     "\\f x -> f x" `lexesTo` [LHsTkLam, LHsTkVar "f", LHsTkVar "x", LHsTkArrow, LHsTkVar "f", LHsTkVar "x"]
     "\\(x)"        `lexesTo` [LHsTkLam, LHsTkLParen, LHsTkVar "x", LHsTkRParen]
-    "\\_ -> Y"     `lexesTo` [LHsTkLam, LHsTkVar "_", LHsTkArrow, LHsTkCon "Y"]
+    "\\_ -> Y"     `lexesTo` [LHsTkLam, LHsTkUnderscore, LHsTkArrow, LHsTkCon "Y"]
     "(\\x -> x) y" `lexesTo` [LHsTkLParen, LHsTkLam, LHsTkVar "x", LHsTkArrow, LHsTkVar "x", LHsTkRParen, LHsTkVar "y"]
     "((x))"        `lexesTo` [LHsTkLParen, LHsTkLParen, LHsTkVar "x", LHsTkRParen, LHsTkRParen]
     "f(x)"         `lexesTo` [LHsTkVar "f", LHsTkLParen, LHsTkVar "x", LHsTkRParen]

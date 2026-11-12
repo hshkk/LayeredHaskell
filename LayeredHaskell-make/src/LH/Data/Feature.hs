@@ -18,10 +18,10 @@ module LH.Data.Feature (
     FeatureName, ModuleName, Feature (..), feature,
     -- ** Registries
     Registry, registry,
-    -- ** Merging features
-    FeatureSet, merge,
+    -- ** Superimposing features
+    FeatureSet, superimpose,
     -- ** Generating feature combinations
-    generate,
+    generate, generateCombos,
     -- * Dependencies
     Dependency (..),
     -- ** Convenient synonyms
@@ -30,22 +30,28 @@ module LH.Data.Feature (
     cnf, dnf
     ) where
 
-import Control.Monad (forM, unless)
-import Data.List     (intercalate)
-import Data.Map      (Map)
-import Data.Set      (Set)
+import Control.Monad      (forM, forM_, unless)
+import Data.List          (intercalate)
+import Data.Map           (Map)
+import Data.Set           (Set)
+import System.Directory   (createDirectoryIfMissing, doesFileExist)
+import System.Exit        (die)
+import System.FilePath    (takeDirectory)
+import System.IO          (readFile')
+
+import Happy.Frontend             (parseYFileContents)
+import Happy.Frontend.AbsSyn
+import Language.Haskell.Syntax
+import Language.Haskell.Parser
+import Language.Haskell.Pretty    (prettyPrint)
 
 import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
-import Happy.Frontend (parseYFileContents)
-import Happy.Frontend.AbsSyn
-import Language.Haskell.Syntax
-import Language.Haskell.Parser
-
 import LH.Control.Superimposition ((-->))
-import LH.Text.Label (infoLabel, errLabel)
+import LH.Text.Happy.Pretty       (pprHappy)
+import LH.Text.Label              (infoLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -99,7 +105,7 @@ feature
     -> Feature
 feature modls gram depends implied hide =
     Feature (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
-    where qualify file = "LayeredHaskell-make/src-exe/LH/Feature/" ++ file
+    where qualify file = "LayeredHaskell-make/src/LH/Feature/" ++ file
 
 -------------------------------------------------------------------------------
 -- Registries
@@ -123,6 +129,26 @@ registry = Map.fromList
     , ("D", feature ["D/AbsSyn.hs"]
                     (Just ("D/Parser.y"))
                     (Has "E")
+                    None
+                    False)
+    , ("F", feature ["F/AbsSyn.hs"]
+                    (Just ("F/Parser.y"))
+                    (Has "E" /\ (Has "B" \/ Has "D"))
+                    None
+                    False)
+    , ("C", feature ["C/AbsSyn.hs"]
+                    (Just ("C/Parser.y"))
+                    None
+                    (Has "D" /\ Has "F")
+                    True)
+    , ("P", feature ["P/AbsSyn.hs"]
+                    (Just ("P/Parser.y"))
+                    (Has "D")
+                    None
+                    False)
+    , ("L", feature ["L/AbsSyn.hs"]
+                    (Just ("L/Parser.y"))
+                    (Has "D" /\ Has "F")
                     None
                     False)
     ]
@@ -246,8 +272,50 @@ merge reg names = case resolve reg names of
                 let (modls, grams) = unzip pairs
                 return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
 
+-- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
+--   The directory should written in the format, say, @src/LH/Feature/@, since 'superimpose' simply appends it to the front of the filepath. 
+superimpose :: [FeatureName] -> FilePath -> IO ()
+superimpose names dir = do
+    merged <- merge registry (Set.fromList names)
+    case merged of
+        Left err -> die err
+        Right (haskell, happy) -> do
+            forM_ (Map.toList haskell) (\(name, modl) -> do
+                let out = "{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl
+                length out `seq` writeIfChanged (dir ++ (end name) ++ ".hs") out)
+            forM_ (Map.toList happy) (\(name, gram) -> do
+                let out = pprHappy gram
+                length out `seq` writeIfChanged (dir ++ (end name) ++ ".y") out)
+    putStrLn $ infoLabel "Done!"
+    where
+        end = reverse . takeWhile (/= '.') . reverse
+
+-- | Writes to a file only if its content differs.
+--   This way, we don't need to recompile everything on every build.
+writeIfChanged :: FilePath -> String -> IO ()
+writeIfChanged path new = do
+    createDirectoryIfMissing True (takeDirectory path)
+    exists <- doesFileExist path
+    old <- if exists then readFile' path else pure ""
+    unless (exists && old == new) $ do
+        writeFile path new
+        putStrLn $ infoLabel "Updated source file " ++ path
+
 -------------------------------------------------------------------------------
 -- Generating feature combinations
+
+-- | Generates a list of all feature combinations.
+combos :: Either String [[(FeatureName, Bool)]]
+combos = do
+    mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
+    fmap (filter (not . null)) $
+        traverse (\feats -> fmap (map (\name -> (name, manual feats name))) (order registry feats))
+                 (filter (null . check registry)
+                         (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc))
+                                            (Set.singleton (select registry Set.empty))
+                                            (Map.keys (Map.filter (not . hidden) registry)))))
+    where
+        manual feats name = not (name `Set.member` select registry (Set.delete name feats))
 
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
 --   with dependencies and implications automatically resolved.
@@ -257,23 +325,18 @@ generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
     putStrLn $ infoLabel "Only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
             ++ "The rest can be automatically resolved."
-    let combos = do
-            mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
-            traverse (\feats -> fmap (map (color feats)) (order registry feats)) 
-                    (filter (null . check registry)
-                            (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc)) 
-                                               (Set.singleton (select registry Set.empty)) 
-                                               (Map.keys (Map.filter (not . hidden) registry)))))
     either (putStrLn . errLabel) report combos
     where
-        report combos = do
-            let shown = filter (not . null) combos
-            mapM_ (putStrLn . infoLabel . unwords) shown
-            putStrLn $ infoLabel (show (length shown)) ++ " feature combinations found!"
-        -- | Colors only non-redundant features.
-        color feats name
-            | name `Set.member` select registry (Set.delete name feats) = name
-            | otherwise = "\ESC[35m" ++ name ++ "\ESC[0m"
+        report rows = do
+            mapM_ (putStrLn . infoLabel . unwords . map paint) rows
+            putStrLn $ infoLabel (show (length rows)) ++ " feature combinations found!"
+        paint (name, True)  = "\ESC[35m" ++ name ++ "\ESC[0m"
+        paint (name, False) = name
+
+-- | Generates a list of just the feature combinations that contribute to 'generate'.
+--   (It might be that we need a better term for "feature combination".)
+generateCombos :: IO [[FeatureName]]
+generateCombos = either (ioError . userError . errLabel) (return . filter (not . null) . map (map fst . filter snd)) combos
 
 -------------------------------------------------------------------------------
 -- Dependencies

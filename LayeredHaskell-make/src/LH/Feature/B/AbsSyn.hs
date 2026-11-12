@@ -17,7 +17,9 @@ module LH.Feature.AbsSyn (
     -- ** Binary operators
     LHsBin (..),
     -- * Types
-    LHsType (..)
+    LHsType (..),
+    -- ** Patterns
+    LHsPat (..)
     ) where
 
 -- | An expression.
@@ -55,5 +57,11 @@ data LHsVal
 
 -- | A type.
 data LHsType
-    = LHsTyCon Id                  -- ^ A nullary type constructor.
+    = LHsTyCon Id (Seq LHsType)    -- ^ A type constructor.
+    deriving (Eq, Show)
+
+-- | A pattern.
+data LHsPat
+    = LHsPInt Int                  -- ^ A literal integer pattern.
+    | LHsPCon Id (Seq LHsPat)      -- ^ A pattern constructor.
     deriving (Eq, Show)

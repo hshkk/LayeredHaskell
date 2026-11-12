@@ -105,6 +105,7 @@ tokens :-
     "["                       { token LHsTkLBrack     }
     "]"                       { token LHsTkRBrack     }
     ","                       { token LHsTkComma      }
+    "_"                       { token LHsTkUnderscore }
     ---------------------------------------------------------------------------
     -- Keywords
     "let"                     { layoutKeyword LHsTkLet }

@@ -42,6 +42,7 @@ import LH.Text.Token
 %token
     con    { LHsLexeme _ (LHsTkCon $$) }
     'data' { LHsLexeme _ LHsTkData }
+    'type' { LHsLexeme _ LHsTkType }
     '='    { LHsLexeme _ LHsTkEq }
     '|'    { LHsLexeme _ LHsTkPipe }
     '('    { LHsLexeme _ LHsTkLParen }
@@ -67,18 +68,27 @@ Cons :: { Seq (Id, Seq LHsType) }
 Con :: { (Id, Seq LHsType) }
     : con             { ($1, Seq.empty) }
     | Con TyAtom      { let (c, xs) = $1 in (c, xs |> $2) }
-    -- ^ TODO: Add type applications to TyAtom in P.
 
 -- A single declaration.
 Decl :: { LHsDecl }
     : 'data' con TyVars '=' Cons { LHsData $2 $3 $5 }
+    | 'type' con TyVars '=' Type { LHsType $2 $3 $5 }
+
+-------------------------------------------------------------------------------
+-- Patterns
+
+Pat :: { LHsPat }
+    : con PatApp   { LHsPCon $1 $2 }
+
+PatAtom :: { LHsPat }
+    : con          { LHsPCon $1 Seq.empty }
+
+-------------------------------------------------------------------------------
+-- Types
 
 -- Type variables. (D has none.)
 TyVars :: { Seq Id }
     : {- ε -}         { Seq.empty }
 
--------------------------------------------------------------------------------
--- Types
-
 TyAtom :: { LHsType }
-    : con  { LHsTyCon $1 }
+    : con  { LHsTyCon $1 Seq.empty }
