@@ -46,11 +46,7 @@ jobs:
     - name: Build documentation
       if: github.event_name == 'push'
       run: |
-        rm -rf dist-newstyle/build/*/ghc-*/*/doc
-        cabal haddock all --haddock-hyperlink-source --haddock-quickjump
-        mkdir _site
-        DOCDIR=$(dirname "$(find dist-newstyle -path '*/doc/html/*/index.html' | head -n 1)")
-        cp -r "$DOCDIR"/. _site/
+        cabal haddock-project --hackage --output=_site
 
     - name: Upload documentation
       if: github.event_name == 'push'

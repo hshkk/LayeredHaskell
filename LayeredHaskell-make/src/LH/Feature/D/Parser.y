@@ -88,7 +88,7 @@ PatAtom :: { LHsPat }
 
 -- Type variables. (D has none.)
 TyVars :: { Seq Id }
-    : {- ε -}         { Seq.empty }
+    : {- ε -}      { Seq.empty }
 
 TyAtom :: { LHsType }
-    : con  { LHsTyCon $1 Seq.empty }
+    : con          { LHsTyCon $1 Seq.empty }

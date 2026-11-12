@@ -22,5 +22,6 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
+haddocks/
 LayeredHaskell-make/src/LH/Feature/Features
 src/LH/Feature/
