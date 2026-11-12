@@ -26,15 +26,42 @@ Some useful commands are as follows.
 
 ## Enabling Features
 
-To enable (or disable) features, edit the [`LayeredHaskell-make/src-exe/LH/Features`](LayeredHaskell-make/src-exe/LH/Feature/Features) text file. (This will be changed in the future.) 
+To enable (or disable) features, execute the following.
+```
+cabal run LayeredHaskell-make -- set ...
+```
+Substitute `...` for a (nonempty) set of features separated by spaces.
 
-Features must take the names defined in `registry` under the [`LH.Data.Feature`](LayeredHaskell-make/src-exe/LH/Data/Feature.hs) module, and each must be placed on its own line.
+If you would like to inspect the source files corresponding to the set of enabled features, run `cabal build` afterwards and check the contents of `src/LH/Feature/`.
+
+### What's available?
+
+For a list of features, execute the following.
+```
+cabal run LayeredHaskell-make -- ls
+```
+For a list of *all* features (that is, including hidden ones), execute the following.
+```
+cabal run LayeredHaskell-make -- ls a
+```
+
+For a list of all valid feature combinations, execute the following.
+```
+cabal run LayeredHaskell-make -- ls c
+```
+
+### Additional Information
+
+While these commands should cover most needs during development, for a complete list, execute the `help` command as follows.
+```
+cabal run LayeredHaskell-make -- help
+```
 
 ## Execution
 
-The main executable can be invoked as follows. (Alternatively, `exes` can be replaced with `LayeredHaskell`.)
+The main executable can be invoked as follows. (Alternatively, `LayeredHaskell` can be replaced with `exes`.)
 ```
-cabal run exes -- <filepath>
+cabal run LayeredHaskell -- <filepath>
 ```
 Currently, the file located at `<filepath>` will be parsed, and its abstract syntax tree will be printed (provided that there are no parse errors). This will soon be fed into a typechecker and then an interpreter.
 

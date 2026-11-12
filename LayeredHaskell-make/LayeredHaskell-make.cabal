@@ -27,12 +27,11 @@ synopsis: Superimposition of Happy and Haskell program fragments.
 
 -- A longer description of the package.
 description:
-    .
     In Layered Haskell, language features are implemented as
     program fragments that are systematically merged to produce a set of source files.
     We call this merging operation /superimposition/, 
     since repeat definitions are overridden while new definitions are added on. 
-    .
+    
     This package exposes a superimposition operation on Happy and Haskell
     abstract syntax trees, as well as various definitions for linking
     features to files and displaying diagnostic information.
@@ -108,7 +107,8 @@ executable LayeredHaskell-make
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:
+        Paths_LayeredHaskell_make
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
