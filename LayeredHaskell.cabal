@@ -27,6 +27,7 @@ synopsis: A friendly layered implementation of a subset of Haskell.
 
 -- A longer description of the package.
 description: 
+    .
     Layered Haskell is a layered functional language in which users can enable and disable various language features at will. 
     .
     The modularity of Layered Haskell enables language variants and tailored error messages that provide a gentle introduction to

@@ -1,6 +1,6 @@
 {- |
 Module      : LH.Text.Label
-Description : Labelling terminal output.
+Description : Labeling terminal output.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
                   Leonidas Sallos, 2026
@@ -13,7 +13,9 @@ This module provides definitions for prepending labels to strings.
 -}
 module LH.Text.Label (
     -- * Labeling
-    infoLabel, warnLabel, errLabel
+    infoLabel, 
+    -- ** Warnings and errors
+    warnLabel, errLabel
     ) where
 
 -- | Prepends an @"\<INFO\>"@ label to a string.
