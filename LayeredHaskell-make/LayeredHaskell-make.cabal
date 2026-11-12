@@ -23,10 +23,18 @@ name:               LayeredHaskell-make
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:
+synopsis: Superimposition of Happy and Haskell program fragments.
 
 -- A longer description of the package.
 description:
+    In Layered Haskell, language features are implemented as
+    program fragments that are systematically merged to produce a set of source files.
+    We call this merging operation /superimposition/, 
+    since repeat definitions are overridden while new definitions are added on. 
+    .
+    This package exposes a superimposition operation on Happy and Haskell
+    abstract syntax trees, as well as various definitions for linking
+    features to files and displaying diagnostic information.
 
 -- The license under which the package is released.
 license:            MIT

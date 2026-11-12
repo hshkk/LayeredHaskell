@@ -1,6 +1,6 @@
 {- |
 Module      : LH.Feature.AbsSyn
-Description : The abstract syntax for D.
+Description : The abstract syntax for P.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
                   Leonidas Sallos, 2026
@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides abstract syntax definitions for D.
+This module provides abstract syntax definitions for P.
 -}
 module LH.Feature.AbsSyn (
     -- ** Types

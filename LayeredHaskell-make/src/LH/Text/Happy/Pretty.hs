@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides a basic pretty-printer for Happy abstract syntax trees, /including embedded Haskell/.
+This module provides a basic pretty-printer for Happy abstract syntax trees that includes embedded Haskell.
 -}
 module LH.Text.Happy.Pretty (
     -- * Pretty-printer
