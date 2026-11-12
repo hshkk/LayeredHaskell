@@ -52,6 +52,8 @@ tested-with:        GHC == 9.6.7
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 extra-source-files:
     src/LH/Feature/Features
+    src/LH/Feature/**/*.hs
+    src/LH/Feature/**/*.y
 
 common warnings
     ghc-options: -Wall
