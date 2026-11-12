@@ -19,7 +19,7 @@ jobs:
       id: setup
       with:
         ghc-version: '9.6.7'
-        cabal-version: '3.10'
+        cabal-version: '3.12.1.0'
 
     - name: Cache
       uses: actions/cache@v4
@@ -30,9 +30,9 @@ jobs:
           ~/.cabal/packages
           ~/.cabal/store
           dist-newstyle
-        key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-${{ env.cache-name }}-${{ hashFiles('**/*.cabal', '**/cabal.project') }}
+        key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{ steps.setup.outputs.cabal-version }}-${{ env.cache-name }}-${{ hashFiles('**/*.cabal', '**/cabal.project') }}
         restore-keys: |
-          ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-${{ env.cache-name }}-
+          ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{ steps.setup.outputs.cabal-version }}-${{ env.cache-name }}-
 
     - name: Install dependencies
       run: |
