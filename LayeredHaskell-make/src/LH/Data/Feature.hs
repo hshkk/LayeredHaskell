@@ -54,7 +54,7 @@ import qualified Data.Set   as Set
 
 import LH.Control.Superimposition ((-->))
 import LH.Text.Happy.Pretty       (pprHappy)
-import LH.Text.Label              (infoLabel, hintLabel, errLabel)
+import LH.Text.Label              (infoLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -307,7 +307,7 @@ merge reg names = case resolve reg names of
 --   since 'superimpose' simply appends it to the front of the filepath. 
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
-    putStrLn $ hintLabel "LayeredHaskell-make is starting up..."
+    putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
     merged <- merge registry (Set.fromList names)
     case merged of
         Left err -> die err
