@@ -101,7 +101,7 @@ data Feature = Feature
 feature
     :: String            -- ^ A short description of \(f\). See 'descrip'.
     -> [FilePath]        -- ^ Haskell source files (specified /relatively/, e.g. @E/AbsSyn.hs@). See 'modules'.
-    -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@). See' grammar'.
+    -> Maybe FilePath    -- ^ A Happy grammar, if any (specified /relatively/, e.g. @E/Parser.y@). See 'grammar'.
     -> Dependency        -- ^ What \(f\) depends on. See 'dependsOn'.
     -> Dependency        -- ^ What implies \(f\). See 'impliedBy'.
     -> Bool              -- ^ Whether \(f\) may only be enabled automatically. See 'hidden'.
@@ -335,6 +335,7 @@ writeIfChanged path new = do
 -------------------------------------------------------------------------------
 -- Listing features
 
+-- | Lists all non-'hidden' features in 'registry'.
 list :: IO ()
 list = do
     putStrLn $ infoLabel "Listing features..."
@@ -344,6 +345,7 @@ list = do
         entry (name, desc) = name ++ ": " ++ desc
         paint name = "\ESC[35m" ++ name ++ "\ESC[0m"
 
+-- | Lists all features, including 'hidden' ones, in 'registry'.
 listAll :: IO ()
 listAll = do
     putStrLn $ infoLabel "Listing all features..."
@@ -355,6 +357,7 @@ listAll = do
         paint (name, True)  = name
         paint (name, False) = "\ESC[35m" ++ name ++ "\ESC[0m"
 
+-- | Lists all feature dependencies and implications.
 listDeps :: IO ()
 listDeps = do
     putStrLn $ infoLabel "Listing all dependencies and joint implications..."
