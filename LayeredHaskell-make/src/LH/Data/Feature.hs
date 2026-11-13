@@ -54,7 +54,7 @@ import qualified Data.Set   as Set
 
 import LH.Control.Superimposition ((-->))
 import LH.Text.Happy.Pretty       (pprHappy)
-import LH.Text.Label              (infoLabel, errLabel)
+import LH.Text.Label              (infoLabel, hintLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -130,7 +130,7 @@ type Registry = Map FeatureName Feature
 --      [@D@]: (Monomorphic) algebraic datatypes.
 --             Depends on @E@.
 --      [@F@]: Functions and basic pattern matching.
---             Depends on @E@ and (@B@ or @D@).
+--             Depends on @B@ or @D@.
 --      [@C@]: /Case expressions/.
 --             Implied by @F@ and @D@.
 --      [@P@]: Prenex polymorphism (with implicit @forall@s).
@@ -160,7 +160,7 @@ registry = Map.fromList
     , ("F", feature "Functions"
                     ["F/AbsSyn.hs"]
                     (Just ("F/Parser.y"))
-                    (Has "E" /\ (Has "B" \/ Has "D"))
+                    (Has "B" \/ Has "D")
                     None
                     False)
     , ("C", feature "Case expressions"
@@ -307,6 +307,7 @@ merge reg names = case resolve reg names of
 --   since 'superimpose' simply appends it to the front of the filepath. 
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
+    putStrLn $ hintLabel "LayeredHaskell-make is starting up..."
     merged <- merge registry (Set.fromList names)
     case merged of
         Left err -> die err

@@ -9,7 +9,7 @@ import LH.Data.Feature
     (superimpose, 
      list, listAll, listDeps, 
      generate)
-import LH.Text.Label      (hintLabel, warnLabel, errLabel)
+import LH.Text.Label      (infoLabel, hintLabel, warnLabel, errLabel)
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
@@ -22,18 +22,23 @@ main = do
         [] -> do
             names <- getNames
             superimpose names dir
-        ["help"]       -> help
-        ["version"]    -> version
-        ["ls"]         -> list
-        ["ls", "a"]    -> listAll
-        ["ls", "d"]    -> listDeps
-        ["ls", "c"]    -> generate
+        ["help"]    -> help
+        ["version"] -> version
+        ["ls"]      -> list
+        ["ls", "a"] -> listAll
+        ["ls", "d"] -> listDeps
+        ["ls", "c"] -> generate
+        ["show"]    -> do
+            names <- getNames
+            putStrLn $ infoLabel "Listing enabled features..."
+            putStrLn (unwords names)
         "set":feats
             | null feats -> do
                 putStrLn $ errLabel "One or more features must be enabled."
                 putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
             | otherwise -> do
                 writeFile features (unlines feats)
+                putStrLn $ infoLabel "Enabled '" ++ unwords feats ++ "'."
         _  -> do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
             putStrLn $ warnLabel "Proceeding as if there were none..."
