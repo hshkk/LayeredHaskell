@@ -218,21 +218,21 @@ instance Identifiable H.HsImportSpec where
 --   declarations, foreign declarations, pattern bindings) is rejected by 'identify'.
 --   We could consider writing definitions for these too, but we don't have a use for them right now.
 data DeclId
-    = ValueI  H.HsName  -- ^ Functions and variables.
-    | SigI    H.HsName  -- ^ Type signatures.
-    | TypeI   H.HsName  -- ^ Type synonyms, datatype declarations, and @newtype@s.
-    | FixityI H.HsName  -- ^ Fixity declarations.
+    = Value  H.HsName  -- ^ Functions and variables.
+    | Sig    H.HsName  -- ^ Type signatures.
+    | Type   H.HsName  -- ^ Type synonyms, datatype declarations, and @newtype@s.
+    | Fixity H.HsName  -- ^ Fixity declarations.
     deriving Eq
 
 instance Identifiable H.HsDecl where
     type Identifier H.HsDecl = DeclId
-    identify (H.HsTypeDecl _ name _ _)                  = Right (TypeI name)
-    identify (H.HsDataDecl _ _ name _ _ _)              = Right (TypeI name)
-    identify (H.HsNewTypeDecl _ _ name _ _ _)           = Right (TypeI name)
-    identify (H.HsFunBind (H.HsMatch _ name _ _ _ : _)) = Right (ValueI name)
-    identify (H.HsTypeSig _ [name] _)                   = Right (SigI name)
-    identify (H.HsInfixDecl _ _ _ [H.HsVarOp name])     = Right (FixityI name)
-    identify (H.HsInfixDecl _ _ _ [H.HsConOp name])     = Right (FixityI name)
+    identify (H.HsTypeDecl _ name _ _)                  = Right (Type name)
+    identify (H.HsDataDecl _ _ name _ _ _)              = Right (Type name)
+    identify (H.HsNewTypeDecl _ _ name _ _ _)           = Right (Type name)
+    identify (H.HsFunBind (H.HsMatch _ name _ _ _ : _)) = Right (Value name)
+    identify (H.HsTypeSig _ [name] _)                   = Right (Sig name)
+    identify (H.HsInfixDecl _ _ _ [H.HsVarOp name])     = Right (Fixity name)
+    identify (H.HsInfixDecl _ _ _ [H.HsConOp name])     = Right (Fixity name)
     identify decl = Left ("Cannot merge this declaration: "
                           ++ takeWhile (/= '\n') (dropWhile isSpace (H.prettyPrint decl)))
 
@@ -281,23 +281,23 @@ instance Superimposable (Y.Directive String) where
 
 -- | Identifiers for Happy directives.
 data DirectiveId
-    = TokenI     String  -- ^ A @%token@ directive, one per token.
-    | NameI      String  -- ^ The @%name@ directive.
-    | AttributeI String  -- ^ The @%attribute@ directive.
-    | PrecI      String  -- ^ A precedence directive, @%left@, @%right@, or @%nonassoc@.
-    | OtherI     String  -- ^ Any other directive.
+    = Token     String  -- ^ A @%token@ directive, one per token.
+    | Name      String  -- ^ The @%name@ directive.
+    | Attribute String  -- ^ The @%attribute@ directive.
+    | Prec      String  -- ^ The @%left@, @%right@, or @%nonassoc@ directive.
+    | Other     String  -- ^ Any other directive.
     deriving Eq
 
 instance Identifiable (Y.Directive String) where
     type Identifier (Y.Directive String) = DirectiveId
-    identify (Y.TokenSpec [(name, _)]) = Right (TokenI name)
+    identify (Y.TokenSpec [(name, _)]) = Right (Token name)
     identify (Y.TokenName _ _ True)    = Left "Cannot merge %partial directives"
-    identify (Y.TokenName name _ _)    = Right (NameI name)
-    identify (Y.TokenAttribute name _) = Right (AttributeI name)
-    identify (Y.TokenLeft [name])      = Right (PrecI name)
-    identify (Y.TokenRight [name])     = Right (PrecI name)
-    identify (Y.TokenNonassoc [name])  = Right (PrecI name)
-    identify dir                       = Right (OtherI (takeWhile (/= ' ') (show dir)))
+    identify (Y.TokenName name _ _)    = Right (Name name)
+    identify (Y.TokenAttribute name _) = Right (Attribute name)
+    identify (Y.TokenLeft [name])      = Right (Prec name)
+    identify (Y.TokenRight [name])     = Right (Prec name)
+    identify (Y.TokenNonassoc [name])  = Right (Prec name)
+    identify dir                       = Right (Other (takeWhile (/= ' ') (show dir)))
 
 -- | Splits @x a b@ into @x a@ and @x b@, where @x@ ranges over @%token@, @%left@, @%right@, and @%nonassoc@.
 --   Leaves all other directives alone.
