@@ -160,11 +160,11 @@ instance Superimposable H.HsExportSpec where
 
 instance Identifiable H.HsExportSpec where
     type Identifier H.HsExportSpec = Either H.HsQName H.Module  -- an entity, or a whole module
-    identify (H.HsEVar name)         = Right (Left name)
-    identify (H.HsEAbs name)         = Right (Left name)
-    identify (H.HsEThingAll name)    = Right (Left name)
-    identify (H.HsEThingWith name _) = Right (Left name)
-    identify (H.HsEModuleContents m) = Right (Right m)
+    identify (H.HsEVar name)            = Right (Left  name)
+    identify (H.HsEAbs name)            = Right (Left  name)
+    identify (H.HsEThingAll name)       = Right (Left  name)
+    identify (H.HsEThingWith name _)    = Right (Left  name)
+    identify (H.HsEModuleContents modl) = Right (Right modl)
 
 -- Imports --------------------------------------------------------------------
 
