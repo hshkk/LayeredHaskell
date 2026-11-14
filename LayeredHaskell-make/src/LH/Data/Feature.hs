@@ -23,7 +23,7 @@ module LH.Data.Feature (
     -- ** Listing features
     list, listAll, listDeps,
     -- ** Listing feature combinations
-    generate, generateCombos,
+    combos, generate, generateCombos,
     -- * Dependencies
     Dependency (..),
     -- ** Convenient synonyms
