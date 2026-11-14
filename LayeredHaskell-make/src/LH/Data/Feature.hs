@@ -40,7 +40,7 @@ import Data.Maybe       (maybeToList)
 import Data.Set         (Set)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit      (die)
-import System.FilePath  (takeDirectory, (</>))
+import System.FilePath  (takeDirectory, (</>), (<.>))
 import System.IO        (readFile')
 
 import Happy.Frontend          (parseYFileContents)
@@ -110,7 +110,7 @@ feature
     -> Feature
 feature desc modls gram depends implied hide =
     Feature desc (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
-    where qualify file = "LayeredHaskell-make/src/LH/Feature/" ++ file
+    where qualify file = "LayeredHaskell-make" </> "src" </> "LH" </> "Feature" </> file
 
 -------------------------------------------------------------------------------
 -- Registries
@@ -142,44 +142,44 @@ type Registry = Map FeatureName Feature
 registry :: Registry
 registry = Map.fromList
     [ ("E", feature "Expressions"
-                    ["E/AbsSyn.hs"]
-                    (Just ("E/Parser.y"))
+                    ["E" </> "AbsSyn" <.> "hs"]
+                    (Just ("E" </> "Parser" <.> "y"))
                     None
                     None
                     True)
     , ("B", feature "Basic types"
-                    ["B/AbsSyn.hs"]
-                    (Just ("B/Parser.y"))
+                    ["B" </> "AbsSyn" <.> "hs"]
+                    (Just ("B" </> "Parser" <.> "y"))
                     (Has "E")
                     None
                     False)
     , ("D", feature "Monomorphic algebraic datatypes"
-                    ["D/AbsSyn.hs"]
-                    (Just ("D/Parser.y"))
+                    ["D" </> "AbsSyn" <.> "hs"]
+                    (Just ("D" </> "Parser" <.> "y"))
                     (Has "E")
                     None
                     False)
     , ("F", feature "Functions"
-                    ["F/AbsSyn.hs"]
-                    (Just ("F/Parser.y"))
+                    ["F" </> "AbsSyn" <.> "hs"]
+                    (Just ("F" </> "Parser" <.> "y"))
                     (Has "B" \/ Has "D")
                     None
                     False)
     , ("C", feature "Case expressions"
-                    ["C/AbsSyn.hs"]
-                    (Just ("C/Parser.y"))
+                    ["C" </> "AbsSyn" <.> "hs"]
+                    (Just ("C" </> "Parser" <.> "y"))
                     None
                     (Has "D" /\ Has "F")
                     True)
     , ("P", feature "Prenex polymorphism"
-                    ["P/AbsSyn.hs"]
-                    (Just ("P/Parser.y"))
+                    ["P" </> "AbsSyn" <.> "hs"]
+                    (Just ("P" </> "Parser" <.> "y"))
                     (Has "D")
                     None
                     False)
     , ("L", feature "List and tuple syntax"
-                    ["L/AbsSyn.hs"]
-                    (Just ("L/Parser.y"))
+                    ["L" </> "AbsSyn" <.> "hs"]
+                    (Just ("L" </> "Parser" <.> "y"))
                     (Has "D" /\ Has "F")
                     None
                     False)
@@ -307,9 +307,13 @@ superimpose names dir = do
     putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
     (haskell, happy) <- merge registry (Set.fromList names) >>= either die return
     forM_ (Map.toList haskell) $ \(name, modl) ->
-        writeIfChanged (dir </> end name ++ ".hs") ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
+        writeIfChanged
+            (dir </> end name <.> "hs")
+            ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
     forM_ (Map.toList happy) $ \(name, gram) ->
-        writeIfChanged (dir </> end name ++ ".y") (pprHappy gram)
+        writeIfChanged
+            (dir </> end name <.> "y")
+            (pprHappy gram)
     putStrLn $ infoLabel "Done!"
     where
         end = reverse . takeWhile (/= '.') . reverse
