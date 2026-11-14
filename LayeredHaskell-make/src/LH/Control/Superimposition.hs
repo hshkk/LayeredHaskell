@@ -75,6 +75,7 @@ infixl 6 -->
 --   Specific instances replace this behavior with a merging semantics.
 class Superimposable a where
     -- | Superimposes two values.
+    --   
     --   Note that superimposition can fail for various reasons, such as when differing module names are encountered.
     (-->) :: a -> a -> Either String a
     x --> _ = Right x
@@ -86,6 +87,10 @@ class Superimposable a where
 class Identifiable a where
     type Identifier a
     -- | Identifies a value.
+    --   
+    --   Note that identification can fail for various reasons, 
+    --   most notably when superimposition has not been defined for a 
+    --   given language construct out of a lack of necessity.
     identify :: a -> Either String (Identifier a)
 
 -- | Lists are superimposed element by element. 
@@ -216,7 +221,6 @@ instance Identifiable H.HsImportSpec where
 --
 --   Only these declarations can be merged. Everything else (classes, instances, default
 --   declarations, foreign declarations, pattern bindings) is rejected by 'identify'.
---   We could consider writing definitions for these too, but we don't have a use for them right now.
 data DeclId
     = Value  H.HsName  -- ^ Functions and variables.
     | Sig    H.HsName  -- ^ Type signatures.
@@ -224,6 +228,17 @@ data DeclId
     | Fixity H.HsName  -- ^ Fixity declarations.
     deriving Eq
 
+-- | Only a subset of Haskell declarations have been given superimposition definitions.
+--   These are as follows.
+--
+--       * Type synonyms
+--       * Datatype declarations
+--       * Newtype declarations
+--       * Function bindings
+--       * Type signatures
+--       * Fixity declarations
+--
+--   See 'DeclId'.
 instance Identifiable H.HsDecl where
     type Identifier H.HsDecl = DeclId
     identify (H.HsTypeDecl _ name _ _)                  = Right (Type name)
@@ -284,7 +299,7 @@ data DirectiveId
     = Token     String  -- ^ A @%token@ directive, one per token.
     | Name      String  -- ^ The @%name@ directive.
     | Attribute String  -- ^ The @%attribute@ directive.
-    | Prec      String  -- ^ The @%left@, @%right@, or @%nonassoc@ directive.
+    | Prec      String  -- ^ A @%left@, @%right@, or @%nonassoc@ directive, one per token.
     | Other     String  -- ^ Any other directive.
     deriving Eq
 
@@ -299,8 +314,8 @@ instance Identifiable (Y.Directive String) where
     identify (Y.TokenNonassoc [name])  = Right (Prec name)
     identify dir                       = Right (Other (takeWhile (/= ' ') (show dir)))
 
--- | Splits @x a b@ into @x a@ and @x b@, where @x@ ranges over @%token@, @%left@, @%right@, and @%nonassoc@.
---   Leaves all other directives alone.
+-- | Splits @x a b@ into @x a@ and @x b@, where @x@ ranges over the @%token@, @%left@, @%right@, and @%nonassoc@ directives.
+--   All other directives are left as is.
 flattenTokens :: [Y.Directive String] -> [Y.Directive String]
 flattenTokens = (=<<) flattenToken
     where
@@ -311,10 +326,19 @@ flattenTokens = (=<<) flattenToken
         flattenToken dir = return dir
 
 -- | Precedences of tokens, where a higher number binds tighter than a lower one.
---   The (relative) precedences of tokens corresponding to operators borrow directly from standard Haskell.
+--   The (relative) precedences of tokens corresponding to operators borrow directly from Haskell.
 --   Operator associativity is defined within the parser files themselves.
+--
+--   Note that the precedence resolution mechanism here is slightly weaker than precedence climbing. 
+--   In Happy files, tokens with the same precedence but different associativity cannot 
+--   share a precedence level. Consequently, superimposition must order such tokens 
+--   sequentially in precedence lists. As a result, Layered Haskell accepts expressions that 
+--   GHC would normally reject, like @x . y !! z@.
 -- 
 --   ==== __Precedences__
+--
+--   Tokens where superimposition diverges from the GHC are marked with a @!@.
+--   There is currently only one such precedence level.
 --
 --   > LAM                0
 --   > 'in'               1
@@ -328,7 +352,7 @@ flattenTokens = (=<<) flattenToken
 --   > '+' '-'            9
 --   > '*'               10
 --   > NEG               11
---   > '.' '!!'          12
+--   > '.' '!!'          12 !
 precs :: Map String Int
 precs = Map.fromList
     [ ("LAM",    0)
@@ -346,8 +370,8 @@ precs = Map.fromList
     , ("'.'",   12), ("'!!'", 12)
     ]
 
--- | Groups precedence directives by the precedence and associativity of the involved tokens.
---   If a token with an unknown precedence is detected, an error will be thrown.
+-- | Using 'precs', groups precedence directives by the (numeric) precedence and associativity of the 
+--   involved tokens. If a token with an unknown precedence is encountered, an error will be thrown.
 groupPrecs :: [Y.Directive String] -> Either String [Y.Directive String]
 groupPrecs prios = do
     tokPrecs <- mapM precOf toks
