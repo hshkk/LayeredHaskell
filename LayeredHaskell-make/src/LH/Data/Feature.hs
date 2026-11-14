@@ -40,7 +40,7 @@ import Data.Maybe       (maybeToList)
 import Data.Set         (Set)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit      (die)
-import System.FilePath  (takeDirectory)
+import System.FilePath  (takeDirectory, (</>))
 import System.IO        (readFile')
 
 import Happy.Frontend          (parseYFileContents)
@@ -300,16 +300,16 @@ merge reg names = case resolve reg names of
             (,) <$> mergeAll modls <*> mergeAll grams
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
---   The directory should written in the format, say, @src\/LH\/Feature\/@, 
---   since 'superimpose' simply appends it to the front of the filepath. 
+--   The directory should written in the format, say, @src\/LH\/Feature@, 
+--   since 'superimpose' simply appends it to the front of the filepath using '(</>)'. 
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
     putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
     (haskell, happy) <- merge registry (Set.fromList names) >>= either die return
     forM_ (Map.toList haskell) $ \(name, modl) ->
-        writeIfChanged (dir ++ end name ++ ".hs") ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
+        writeIfChanged (dir </> end name ++ ".hs") ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
     forM_ (Map.toList happy) $ \(name, gram) ->
-        writeIfChanged (dir ++ end name ++ ".y") (pprHappy gram)
+        writeIfChanged (dir </> end name ++ ".y") (pprHappy gram)
     putStrLn $ infoLabel "Done!"
     where
         end = reverse . takeWhile (/= '.') . reverse
