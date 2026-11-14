@@ -291,9 +291,10 @@ merge reg names = case resolve reg names of
         -- While each feature only has at most one grammar,
         -- the Map-based representation leads to a slightly simpler implementation.
         loaded <- traverse (load . (reg Map.!)) enabled
-        let mergeAll maps = sequence (Map.unionsWith (\x y -> x >>= \a -> y >>= (a -->)) (map (fmap Right) maps))
+        let mergeAll maps = sequence (Map.unionsWith (\x y -> x >>= \a -> y >>= (a -->)) 
+                                                     (map (fmap Right) maps))
         return $ first errLabel $ do
-            (modls, grams) <- unzip <$> sequence loaded
+            (modls, grams) <- fmap unzip (sequence loaded)
             (,) <$> mergeAll modls <*> mergeAll grams
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
@@ -317,7 +318,7 @@ writeIfChanged :: FilePath -> String -> IO ()
 writeIfChanged path new = length new `seq` do
     createDirectoryIfMissing True (takeDirectory path)
     exists <- doesFileExist path
-    same   <- if exists then (== new) <$> readFile' path else pure False
+    same   <- if exists then fmap (== new) (readFile' path) else pure False
     unless same $ do
         writeFile path new
         putStrLn $ infoLabel "Updated source file " ++ path

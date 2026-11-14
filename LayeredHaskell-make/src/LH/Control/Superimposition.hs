@@ -337,7 +337,7 @@ flattenTokens = (=<<) flattenToken
 -- 
 --   ==== __Precedences__
 --
---   Tokens where superimposition diverges from the GHC are marked with a @!@.
+--   Tokens where superimposition diverges from GHC are marked with a @!@.
 --   There is currently only one such precedence level.
 --
 --   > LAM                0
