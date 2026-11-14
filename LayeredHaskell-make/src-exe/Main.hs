@@ -31,7 +31,7 @@ main = do
         ["show"]    -> do
             names <- getNames
             putStrLn $ infoLabel "Listing enabled features..."
-            putStrLn (unwords names)
+            putStrLn $ infoLabel (unwords names)
         "set":feats
             | null feats -> do
                 putStrLn $ errLabel "One or more features must be enabled."
@@ -63,6 +63,7 @@ help = do
     putStrLn "    ...    = d     :  ...all feature dependencies and implications"
     putStrLn "set <args> : Enable a set of features"
     putStrLn "     ....  = Any feature combination from 'ls c', separated by spaces"
+    putStrLn "show       : The set of currently enabled features"
     putStrLn "version    : The version"
 
 version :: IO ()

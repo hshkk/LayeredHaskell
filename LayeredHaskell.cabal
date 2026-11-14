@@ -75,6 +75,7 @@ library
         LH.Feature.Parser
         LH.Text.Lexer
         LH.Text.Token
+        LH.Text.Parser.Fixity
         LH.Text.Parser.Monad
 
     -- Modules included in this library but not exported.
