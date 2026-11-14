@@ -31,7 +31,7 @@ data LHsExpr
     -- Note that we do not need a dedicated Boolean representation, since LHsCon provides this already.
     deriving (Eq, Show)
 
--- | A binary operator (except for list operators).
+-- | A binary operator (except for function and list operators).
 data LHsBin
     -- Arithmetic operators
     = LHsAdd

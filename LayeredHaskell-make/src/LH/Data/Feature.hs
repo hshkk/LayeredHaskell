@@ -19,7 +19,7 @@ module LH.Data.Feature (
     -- ** Registries
     Registry, registry,
     -- ** Superimposing features
-    FeatureSet, superimpose,
+    FeatureSet, resolve, superimpose,
     -- ** Listing features
     list, listAll, listDeps,
     -- ** Listing feature combinations
@@ -32,20 +32,21 @@ module LH.Data.Feature (
     cnf, dnf
     ) where
 
-import Control.Monad    (forM, forM_, unless)
-import Data.Bifunctor   (bimap)
+import Control.Monad    (forM, forM_, unless, when)
+import Data.Bifunctor   (first)
 import Data.List        (intercalate)
 import Data.Map         (Map)
+import Data.Maybe       (maybeToList)
 import Data.Set         (Set)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit      (die)
-import System.FilePath  (takeDirectory)
+import System.FilePath  (takeDirectory, (</>), (<.>))
 import System.IO        (readFile')
 
 import Happy.Frontend          (parseYFileContents)
 import Happy.Frontend.AbsSyn
 import Language.Haskell.Syntax
-import Language.Haskell.Parser
+import Language.Haskell.Parser (parseModule, ParseResult (..))
 import Language.Haskell.Pretty (prettyPrint)
 
 import qualified Data.Graph as Graph
@@ -53,6 +54,7 @@ import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 import LH.Control.Superimposition ((-->))
+import LH.Data.Error              (LHsMakeError)
 import LH.Text.Happy.Pretty       (pprHappy)
 import LH.Text.Label              (infoLabel, errLabel)
 
@@ -108,7 +110,7 @@ feature
     -> Feature
 feature desc modls gram depends implied hide =
     Feature desc (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
-    where qualify file = "LayeredHaskell-make/src/LH/Feature/" ++ file
+    where qualify file = "LayeredHaskell-make" </> "src" </> "LH" </> "Feature" </> file
 
 -------------------------------------------------------------------------------
 -- Registries
@@ -140,44 +142,44 @@ type Registry = Map FeatureName Feature
 registry :: Registry
 registry = Map.fromList
     [ ("E", feature "Expressions"
-                    ["E/AbsSyn.hs"]
-                    (Just ("E/Parser.y"))
+                    ["E" </> "AbsSyn" <.> "hs"]
+                    (Just ("E" </> "Parser" <.> "y"))
                     None
                     None
                     True)
     , ("B", feature "Basic types"
-                    ["B/AbsSyn.hs"]
-                    (Just ("B/Parser.y"))
+                    ["B" </> "AbsSyn" <.> "hs"]
+                    (Just ("B" </> "Parser" <.> "y"))
                     (Has "E")
                     None
                     False)
     , ("D", feature "Monomorphic algebraic datatypes"
-                    ["D/AbsSyn.hs"]
-                    (Just ("D/Parser.y"))
+                    ["D" </> "AbsSyn" <.> "hs"]
+                    (Just ("D" </> "Parser" <.> "y"))
                     (Has "E")
                     None
                     False)
     , ("F", feature "Functions"
-                    ["F/AbsSyn.hs"]
-                    (Just ("F/Parser.y"))
+                    ["F" </> "AbsSyn" <.> "hs"]
+                    (Just ("F" </> "Parser" <.> "y"))
                     (Has "B" \/ Has "D")
                     None
                     False)
     , ("C", feature "Case expressions"
-                    ["C/AbsSyn.hs"]
-                    (Just ("C/Parser.y"))
+                    ["C" </> "AbsSyn" <.> "hs"]
+                    (Just ("C" </> "Parser" <.> "y"))
                     None
                     (Has "D" /\ Has "F")
                     True)
     , ("P", feature "Prenex polymorphism"
-                    ["P/AbsSyn.hs"]
-                    (Just ("P/Parser.y"))
+                    ["P" </> "AbsSyn" <.> "hs"]
+                    (Just ("P" </> "Parser" <.> "y"))
                     (Has "D")
                     None
                     False)
     , ("L", feature "List and tuple syntax"
-                    ["L/AbsSyn.hs"]
-                    (Just ("L/Parser.y"))
+                    ["L" </> "AbsSyn" <.> "hs"]
+                    (Just ("L" </> "Parser" <.> "y"))
                     (Has "D" /\ Has "F")
                     None
                     False)
@@ -202,7 +204,7 @@ select reg names
 
 -- | Attempt to produce the features in a valid order.
 --   Specifically, every feature should occur before the features the 'dependsOn' and 'impliedBy' fields refer to.
-order :: Registry -> FeatureSet -> Either String [FeatureName]
+order :: Registry -> FeatureSet -> LHsMakeError [FeatureName]
 order reg names = fmap reverse (traverse acyclic (Graph.stronglyConnComp nodes))
     where
         nodes = [ (name, name, Set.toList (Set.unions (dependsOn feat <> impliedBy feat)))
@@ -229,47 +231,39 @@ check reg names =
 -- | Decides which features are really needed for a selection.
 --  
 --   'resolve' generates an error if any of the following are true.
+--
 --       * One or more 'hidden' features were manually enabled.
 --       * The 'registry' is ill-formed in that it contains unknown features.
---       * The enabled features have a dependency that cannot be unambiguously resolved.
+--       * The enabled features have dependencies that cannot be unambiguously resolved.
 --
---   The last case occurs when, say, a feature @A@ depends on features @B@ /or/ @C@, but only @A@ was manually enabled.
---   To avoid an arbitrary choice between @B@ and @C@, an error is generated.
-resolve :: Registry -> FeatureSet -> Either String [Feature]
+--   The last case occurs when, say, a feature @A@ depends on features @B@ or @C@, but only @A@ was manually enabled.
+--   To avoid an arbitrary choice between @B@ and @C@, an error is emitted.
+resolve :: Registry -> FeatureSet -> LHsMakeError [FeatureName]
 resolve reg names = do
-    let hide =
-            [ name
-            | name <- Set.toList names
-            , Just feat <- [Map.lookup name reg]
-            , hidden feat
-            ]
-    unless (null hide) $
-        Left ("Hidden features cannot be selected directly: "
-              ++ intercalate " " hide)
-    let selected = select reg names
+    let hide     = Map.keys (Map.filter hidden (Map.restrictKeys reg names))
+        selected = select reg names
         errs     = check reg selected
-    unless (null errs) (Left (intercalate "\n" errs))
-    fmap (map (reg Map.!)) (order reg selected)
+    unless (null hide) $
+        Left ("Hidden features cannot be selected directly: " ++ unwords hide)
+    unless (null errs) $
+        Left (intercalate "\n" errs)
+    order reg selected
 
 -- | Reads and parses the files corresponding to a language feature, 
 --   producing its Haskell modules and its grammar (if any) as abstract syntax.
 --
 --   The result of 'load' also carries around corresponding module names, 
 --   since we only want to superimpose modules of the same name.
-load :: Feature -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+load :: Feature -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 load feat = do
-    haskellSrcs <- forM (modules feat) (\file -> do
-        src <- readFile file
-        return (file, src))
-    happySrcs <- forM (maybe [] return (grammar feat)) (\file -> do
-        src <- readFile file
-        return (file, src))
+    haskellSrcs <- traverse loadFileWithPath (modules feat)
+    happySrcs   <- traverse loadFileWithPath (maybeToList (grammar feat))
     return $ do
         haskell <- forM haskellSrcs (\(file, src) -> do
             modl@(HsModule _ (Module name) _ _ _) <- parse file src
             return (name, modl))
         happy <- forM happySrcs (\(file, src) -> do
-            gram <- either (Left . ((file ++ ": ") ++)) Right (parseYFileContents src)
+            gram <- first ((file ++ ": ") ++) (parseYFileContents src)
             header <- case gram of
                 BookendedAbsSyn _ (Just header) _ _ -> Right header
                 _ -> Left (file ++ ": The grammar header is empty, so I can't identify it")
@@ -277,6 +271,9 @@ load feat = do
             return (name, gram))
         return (Map.fromList haskell, Map.fromList happy)
     where
+        loadFileWithPath file = do
+            src <- readFile file
+            return (file, src)
         parse file src = case parseModule src of
             ParseOk modl -> Right modl
             ParseFailed (SrcLoc _ l c) err ->
@@ -284,40 +281,39 @@ load feat = do
 
 -- | Resolves the dependencies inherent to a 'FeatureSet', then superimposes modules and grammars 
 --   such that a single set of Haskell modules and at most one Happy grammar is produced.
-merge :: Registry -> FeatureSet -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+merge :: Registry -> FeatureSet -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 merge reg names = case resolve reg names of
-    Left err    -> return (Left (errLabel err))
-    Right feats -> do
-        putStrLn $ infoLabel "These features are enabled: " ++ intercalate " " (Set.toList names)
-        let newfeats = Set.toList (Set.difference (select reg names) names)
-        unless (null newfeats) (putStrLn 
-            $  infoLabel "These features were automatically enabled: " 
-            ++ intercalate " " newfeats)
-        -- While each feature only has at most one grammar, 
-        -- the Map-based representation leads to a simpler implementation.
-        results <- mapM load feats
-        case sequence results of
-            Left err    -> return (Left (errLabel err))
-            Right pairs -> do
-                let (modls, grams) = unzip pairs
-                return (Right (Map.unionsWith (-->) modls, Map.unionsWith (-->) grams))
+    Left err      -> return (Left (errLabel err))
+    Right enabled -> do
+        putStrLn $ infoLabel "These features are enabled: " ++ unwords (Set.toList names)
+        let automatic = filter (`Set.notMember` names) enabled
+        unless (null automatic) (putStrLn
+            $  infoLabel "These features were automatically enabled: "
+            ++ unwords automatic)
+        -- While each feature only has at most one grammar,
+        -- the Map-based representation leads to a slightly simpler implementation.
+        loaded <- traverse (load . (reg Map.!)) enabled
+        let mergeAll maps = sequence (Map.unionsWith (\x y -> x >>= \a -> y >>= (a -->)) 
+                                                     (map (fmap Right) maps))
+        return $ first errLabel $ do
+            (modls, grams) <- fmap unzip (sequence loaded)
+            (,) <$> mergeAll modls <*> mergeAll grams
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
---   The directory should written in the format, say, @src\/LH\/Feature\/@, 
---   since 'superimpose' simply appends it to the front of the filepath. 
+--   The directory should written in the format, say, @src\/LH\/Feature@, 
+--   since 'superimpose' simply appends it to the front of the filepath using '(</>)'. 
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
     putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
-    merged <- merge registry (Set.fromList names)
-    case merged of
-        Left err -> die err
-        Right (haskell, happy) -> do
-            forM_ (Map.toList haskell) (\(name, modl) -> do
-                let out = "{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl
-                length out `seq` writeIfChanged (dir ++ (end name) ++ ".hs") out)
-            forM_ (Map.toList happy) (\(name, gram) -> do
-                let out = pprHappy gram
-                length out `seq` writeIfChanged (dir ++ (end name) ++ ".y") out)
+    (haskell, happy) <- merge registry (Set.fromList names) >>= either die return
+    forM_ (Map.toList haskell) $ \(name, modl) ->
+        writeIfChanged
+            (dir </> end name <.> "hs")
+            ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
+    forM_ (Map.toList happy) $ \(name, gram) ->
+        writeIfChanged
+            (dir </> end name <.> "y")
+            (pprHappy gram)
     putStrLn $ infoLabel "Done!"
     where
         end = reverse . takeWhile (/= '.') . reverse
@@ -325,80 +321,73 @@ superimpose names dir = do
 -- | Writes to a file only if its content differs.
 --   This way, we don't need to recompile everything on every build.
 writeIfChanged :: FilePath -> String -> IO ()
-writeIfChanged path new = do
+writeIfChanged path new = length new `seq` do
     createDirectoryIfMissing True (takeDirectory path)
     exists <- doesFileExist path
-    old <- if exists then readFile' path else pure ""
-    unless (exists && old == new) $ do
+    same   <- if exists then fmap (== new) (readFile' path) else return False
+    unless same $ do
         writeFile path new
         putStrLn $ infoLabel "Updated source file " ++ path
 
 -------------------------------------------------------------------------------
 -- Listing features
 
--- | Lists all non-'hidden' features in 'registry'.
-list :: IO ()
-list = do
-    putStrLn $ infoLabel "Listing features..."
-    mapM_ (putStrLn . infoLabel . entry . bimap paint descrip) 
-          (Map.toList (Map.filter (not . hidden) registry))
-    where
-        entry (name, desc) = name ++ ": " ++ desc
-        paint name = "\ESC[35m" ++ name ++ "\ESC[0m"
+-- | Colors a string representing features that can be enabled manually.
+colored :: String -> String
+colored s = "\ESC[35m" ++ s ++ "\ESC[0m"
 
--- | Lists all features, including 'hidden' ones, in 'registry'.
+-- | Prints a heading, then on each line, a feature's name and an additional detail, if applicable.
+--   Names that can be enabled manually (that is, those that aren't 'hidden') are 'colored'
+--   alongside a note explaining the coloring whenever the registry has any hidden features.
+printFeatures :: String -> Registry -> (Feature -> String) -> IO ()
+printFeatures heading reg det = do
+    putStrLn $ infoLabel heading
+    when (any hidden reg) $
+        putStrLn $ infoLabel ("Note that only " ++ colored "colored" ++ " features can be enabled manually.")
+    forM_ (Map.toList reg) $ \(name, feat) ->
+        putStrLn $ infoLabel ((if hidden feat then name else colored name) ++ ": " ++ det feat)
+
+-- | Lists all non-'hidden' features in the 'registry' including their descriptions. See 'descrip'.
+list :: IO ()
+list = printFeatures "Listing features..." (Map.filter (not . hidden) registry) descrip
+
+-- | Lists all features, including 'hidden' ones, in the 'registry' including their descriptions. See 'descrip'.
 listAll :: IO ()
-listAll = do
-    putStrLn $ infoLabel "Listing all features..."
-    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features can be enabled manually."
-    mapM_ (putStrLn . infoLabel . entry . (\(name, feat) -> (paint (name, hidden feat), descrip feat))) 
-          (Map.toList registry)
-    where
-        entry (name, desc) = name ++ ": " ++ desc
-        paint (name, True)  = name
-        paint (name, False) = "\ESC[35m" ++ name ++ "\ESC[0m"
+listAll = printFeatures "Listing all features..." registry descrip
 
 -- | Lists all feature dependencies and implications.
 listDeps :: IO ()
-listDeps = do
-    putStrLn $ infoLabel "Listing all dependencies and joint implications..."
-    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features can be enabled manually."
-    mapM_ (putStrLn . infoLabel . entry . (\(name, feat) -> (paint (name, hidden feat), dependsOn feat, impliedBy feat))) 
-          (Map.toList registry)
+listDeps = printFeatures "Listing all dependencies and joint implications..." registry detail
     where
-        entry (name, dep, imp) 
-            | Set.null dep && Set.null imp = name ++ ": \ESC[1;31mnone\ESC[0m"
-            | otherwise = 
-                name ++ ": " 
-                     ++ (if Set.null dep 
-                         then "" 
-                         else "depends on " ++ rewrite " or " " and " (map Set.toList (Set.toList dep)))
-                     ++ (if Set.null imp 
-                         then "" 
-                         else (if Set.null dep 
-                               then "" 
-                               else ", ") ++ "implied by " ++ rewrite " and " " or " (map Set.toList (Set.toList imp)))
-        -- Pretty-prints a value of type [[FeatureName]].
-        rewrite inner outer xss = intercalate outer
-            [ if length xs > 1 && length xss > 1 then "(" ++ s ++ ")" else s
-            | xs <- xss, let s = intercalate inner xs ]
-        paint (name, True)  = name
-        paint (name, False) = "\ESC[35m" ++ name ++ "\ESC[0m"
+        detail feat
+            | null parts = "none"
+            | otherwise  = intercalate ", " parts
+            where parts = describe "depends on "  " or "  " and " (dependsOn feat)
+                       ++ describe "implied by " " and "  " or "  (impliedBy feat)
+        -- Pretty-prints a nested set of names, or nothing if it is empty.
+        describe prefix inner outer xss =
+            [ prefix ++ intercalate outer
+                [ if Set.size xs > 1 && Set.size xss > 1 then "(" ++ s ++ ")" else s
+                | xs <- Set.toList xss, let s = intercalate inner (Set.toList xs) ]
+            | not (Set.null xss) ]
 
 -------------------------------------------------------------------------------
 -- Listing feature combinations
 
 -- | Generates a list of all feature combinations.
-combos :: Either String [[(FeatureName, Bool)]]
+combos :: LHsMakeError [[(FeatureName, Bool)]]
 combos = do
     mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
     fmap (filter (not . null)) $
-        traverse (\feats -> fmap (map (\name -> (name, manual feats name))) (order registry feats))
-                 (filter (null . check registry)
-                         (Set.toList (foldr (\name acc -> Set.union acc (Set.map (select registry . Set.insert name) acc))
-                                            (Set.singleton (select registry Set.empty))
-                                            (Map.keys (Map.filter (not . hidden) registry)))))
+        forM (filter (null . check registry)
+                     (Set.toList
+                         (Set.map (select registry)
+                                  (Set.powerSet (Map.keysSet (Map.filter (not . hidden) registry))))))
+             (\feats -> fmap (map (\name -> (name, manual feats name)))
+                             (order registry feats))
     where
+        -- A feature for which manual returns True must be selected manually.
+        -- False means that the feature can be automatically enabled as a dependency.
         manual feats name = not (name `Set.member` select registry (Set.delete name feats))
 
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
@@ -407,21 +396,21 @@ combos = do
 generate :: IO ()
 generate = do
     putStrLn $ infoLabel "Listing all (non-redundant) feature combinations..."
-    putStrLn $ infoLabel "Note that only \ESC[35mcolored\ESC[0m features need to be enabled manually. "
+    putStrLn $ infoLabel ("Note that only " ++ colored "colored" ++ " features need to be enabled manually. ")
             ++ "The rest can be automatically resolved."
     either (putStrLn . errLabel) report combos
     where
         report entries = do
             mapM_ (putStrLn . infoLabel . unwords . map paint) entries
             putStrLn $ infoLabel (show (length entries)) ++ " feature combinations found!"
-        paint (name, True)  = "\ESC[35m" ++ name ++ "\ESC[0m"
-        paint (name, False) = name
+        paint (name, manual) = if manual then colored name else name
 
 -- | Produces the feature combinations colored by 'generate'.
 generateCombos :: IO [[FeatureName]]
-generateCombos = either (ioError . userError . errLabel) 
-                        (return . filter (not . null) . map (map fst . filter snd)) 
-                        combos
+generateCombos =
+    either (die . errLabel)
+           (return . filter (not . null) . map (map fst . filter snd))
+           combos
 
 -------------------------------------------------------------------------------
 -- Dependencies

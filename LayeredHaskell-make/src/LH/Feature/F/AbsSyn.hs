@@ -14,6 +14,8 @@ This module provides abstract syntax definitions for F.
 module LH.Feature.AbsSyn (
     -- ** Expressions and values
     LHsExpr (..),
+    -- ** Binary operators
+    LHsBin (..),
     -- ** Patterns
     LHsPat (..),
     -- ** Types
@@ -24,7 +26,14 @@ import Data.Sequence (Seq)
 
 -- | An expression.
 data LHsExpr
-    = LHsLam (Seq LHsPat) LHsExpr   -- ^ A lambda abstraction.
+    = LHsLam (Seq LHsPat) LHsExpr     -- ^ A lambda abstraction.
+    | LHsBin  LHsBin LHsExpr LHsExpr  -- ^ A binary operation.
+    deriving (Eq, Show)
+
+-- | A binary operator.
+data LHsBin
+    = LHsFunApp                     -- ^ Function application.
+    | LHsFunComp                    -- ^ Function composition.
     deriving (Eq, Show)
 
 -- | A pattern.

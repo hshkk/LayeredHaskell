@@ -14,6 +14,8 @@ This module provides abstract syntax definitions for L.
 module LH.Feature.AbsSyn (
     -- ** Expressions
     LHsExpr (..),
+    -- ** Binary operators
+    LHsBin (..),
     -- ** Patterns
     LHsPat (..),
     -- ** Types
@@ -25,8 +27,15 @@ import Data.Sequence (Seq)
 data LHsExpr
     = LHsList (Seq LHsExpr)          -- ^ A list expression.
     | LHsTuple (Seq LHsExpr)         -- ^ A tuple expression.
-    | LHsListCons LHsExpr LHsExpr    -- ^ The cons operation on lists.
-    | LHsListAppend LHsExpr LHsExpr  -- ^ The append operation on lists.
+    deriving (Eq, Show)
+
+-- | A binary operator. 
+--
+--   Note that binary operations in LHsExpr are provided by F, which L depends on.
+data LHsBin
+    = LHsCons
+    | LHsAppend
+    | LHsIndex
     deriving (Eq, Show)
 
 data LHsPat

@@ -61,9 +61,14 @@ data LHsToken
     | LHsTkEqEq            -- ^ A double equals sign @==@.
     | LHsTkNotEq           -- ^ A forward slash followed by an equals sign @/=@.
     ---------------------------------------------------------------------------
+    -- Function operators
+    | LHsTkDot             -- ^ A period @.@.
+    | LHsTkDollar          -- ^ A dollar sign @$@.
+    ---------------------------------------------------------------------------
     -- List operators
     | LHsTkColon           -- ^ A colon @:@.
     | LHsTkPlusPlus        -- ^ A double plus @++@.
+    | LHsTkExclExcl        -- ^ A double exclamation mark @!!@.
     ---------------------------------------------------------------------------
     -- Symbols
     | LHsTkLam             -- ^ A backslash @\\@, as used in a λ-abstraction.
