@@ -48,7 +48,7 @@ module LH.Control.Superimposition (
     -- ** Flattening lists
     flattenDecls, flattenTokens,
     -- ** Token precedences
-    precs
+    precs, groupPrecs
     ) where
 
 import Control.Applicative ((<|>))
@@ -65,6 +65,8 @@ import qualified Language.Haskell.Parser      as H
 import qualified Language.Haskell.Pretty      as H
 import qualified Language.Haskell.Syntax      as H
 
+import LH.Data.Error (LHsMakeError)
+
 infixl 6 -->
 
 -- | A 'Superimposable' type allows merging of two values \(L\) and \(R\),
@@ -77,7 +79,7 @@ class Superimposable a where
     -- | Superimposes two values.
     --   
     --   Note that superimposition can fail for various reasons, such as when differing module names are encountered.
-    (-->) :: a -> a -> Either String a
+    (-->) :: a -> a -> LHsMakeError a
     x --> _ = Right x
 
 -- | An 'Identifiable' type @a@ has an 'Identifier', which is a value of some type identifying a value of type @a@.
@@ -91,7 +93,7 @@ class Identifiable a where
     --   Note that identification can fail for various reasons, 
     --   most notably when superimposition has not been defined for a 
     --   given language construct out of a lack of necessity.
-    identify :: a -> Either String (Identifier a)
+    identify :: a -> LHsMakeError (Identifier a)
 
 -- | Lists are superimposed element by element. 
 --   Elements with the same identifier are superimposed, and elements that only the right list has are added at the end.
@@ -133,16 +135,6 @@ instance Identifiable H.HsMatch where
 
 -- Modules --------------------------------------------------------------------
 
--- | To superimpose two Haskell modules, they must have the same name.
-instance Superimposable H.HsModule where
-    H.HsModule loc mod1 exps1 imps1 decls1 --> H.HsModule _ mod2 exps2 imps2 decls2
-        | mod1 == mod2 = do
-            exps  <- sequenceA (liftA2 (-->) exps1 exps2)
-            imps  <- imps1 --> imps2
-            decls <- concatMap flattenDecls decls1 --> concatMap flattenDecls decls2
-            return (H.HsModule loc mod1 exps imps decls)
-        | otherwise = Left ("Cannot merge differing modules: " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2)
-
 -- | Splits a declaration holding several names into one declaration per name.
 --   Variable bindings (such as @x = e@) are also rewritten as function bindings, since they get parsed as a pattern binding.
 --
@@ -153,6 +145,18 @@ flattenDecls (H.HsInfixDecl loc assoc prec ops) = [H.HsInfixDecl loc assoc prec 
 flattenDecls (H.HsPatBind loc (H.HsPVar name) rhs wheres)
     = [H.HsFunBind [H.HsMatch loc name [] rhs wheres]]
 flattenDecls decl = [decl]
+
+-- | To superimpose two Haskell modules, they must have the same name.
+--   Then, their exports and imports are merged.
+--   Declarations are flattened before they are merged (see 'flattenDecls'), 
+instance Superimposable H.HsModule where
+    H.HsModule loc mod1 exps1 imps1 decls1 --> H.HsModule _ mod2 exps2 imps2 decls2
+        | mod1 == mod2 = do
+            exps  <- sequenceA (liftA2 (-->) exps1 exps2)
+            imps  <- imps1 --> imps2
+            decls <- concatMap flattenDecls decls1 --> concatMap flattenDecls decls2
+            return (H.HsModule loc mod1 exps imps decls)
+        | otherwise = Left ("Cannot merge differing modules: " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2)
 
 -- Exports --------------------------------------------------------------------
 
@@ -370,9 +374,13 @@ precs = Map.fromList
     , ("'.'",   12), ("'!!'", 12)
     ]
 
--- | Using 'precs', groups precedence directives by the (numeric) precedence and associativity of the 
---   involved tokens. If a token with an unknown precedence is encountered, an error will be thrown.
-groupPrecs :: [Y.Directive String] -> Either String [Y.Directive String]
+-- | Groups precedence directives by the (numeric) precedence and associativity of the 
+--   involved tokens. If a token with an unknown precedence is encountered, an error is emitted.
+--   
+--   Note that the numeric precedences come from 'precs', while the associativities come from the parser files themselves.
+--   Consequently, the order in which token precedence is specified within the parser files is ignored,
+--   since 'groupPrecs' sorts tokens into the expected order anyway.
+groupPrecs :: [Y.Directive String] -> LHsMakeError [Y.Directive String]
 groupPrecs prios = do
     tokPrecs <- mapM precOf toks
     return
@@ -385,6 +393,8 @@ groupPrecs prios = do
         toks       = concatMap Y.getPrioNames prios
         precOf tok = maybe (Left ("Unknown precedence for: " ++ tok)) (\p -> Right (tok, p)) (Map.lookup tok precs)
 
+-- | Directives are first flattened (see 'flattenTokens'), then merged as much as possible.
+--   Precedence directives are merged with respect to numeric precedences (see 'precs').
 instance Superimposable (Y.AbsSyn String) where
     Y.AbsSyn dirs1 rules1 --> Y.AbsSyn dirs2 rules2 = do
         merged  <- flattenTokens dirs1 --> flattenTokens dirs2

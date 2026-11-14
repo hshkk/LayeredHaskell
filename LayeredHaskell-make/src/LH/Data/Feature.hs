@@ -19,7 +19,7 @@ module LH.Data.Feature (
     -- ** Registries
     Registry, registry,
     -- ** Superimposing features
-    FeatureSet, superimpose,
+    FeatureSet, resolve, superimpose,
     -- ** Listing features
     list, listAll, listDeps,
     -- ** Listing feature combinations
@@ -54,6 +54,7 @@ import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 import LH.Control.Superimposition ((-->))
+import LH.Data.Error              (LHsMakeError)
 import LH.Text.Happy.Pretty       (pprHappy)
 import LH.Text.Label              (infoLabel, errLabel)
 
@@ -203,7 +204,7 @@ select reg names
 
 -- | Attempt to produce the features in a valid order.
 --   Specifically, every feature should occur before the features the 'dependsOn' and 'impliedBy' fields refer to.
-order :: Registry -> FeatureSet -> Either String [FeatureName]
+order :: Registry -> FeatureSet -> LHsMakeError [FeatureName]
 order reg names = fmap reverse (traverse acyclic (Graph.stronglyConnComp nodes))
     where
         nodes = [ (name, name, Set.toList (Set.unions (dependsOn feat <> impliedBy feat)))
@@ -230,13 +231,14 @@ check reg names =
 -- | Decides which features are really needed for a selection.
 --  
 --   'resolve' generates an error if any of the following are true.
+--
 --       * One or more 'hidden' features were manually enabled.
 --       * The 'registry' is ill-formed in that it contains unknown features.
---       * The enabled features have a dependency that cannot be unambiguously resolved.
+--       * The enabled features have dependencies that cannot be unambiguously resolved.
 --
---   The last case occurs when, say, a feature @A@ depends on features @B@ /or/ @C@, but only @A@ was manually enabled.
---   To avoid an arbitrary choice between @B@ and @C@, an error is generated.
-resolve :: Registry -> FeatureSet -> Either String [FeatureName]
+--   The last case occurs when, say, a feature @A@ depends on features @B@ or @C@, but only @A@ was manually enabled.
+--   To avoid an arbitrary choice between @B@ and @C@, an error is emitted.
+resolve :: Registry -> FeatureSet -> LHsMakeError [FeatureName]
 resolve reg names = do
     let hide     = Map.keys (Map.filter hidden (Map.restrictKeys reg names))
         selected = select reg names
@@ -252,7 +254,7 @@ resolve reg names = do
 --
 --   The result of 'load' also carries around corresponding module names, 
 --   since we only want to superimpose modules of the same name.
-load :: Feature -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+load :: Feature -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 load feat = do
     haskellSrcs <- traverse loadFileWithPath (modules feat)
     happySrcs   <- traverse loadFileWithPath (maybeToList (grammar feat))
@@ -279,7 +281,7 @@ load feat = do
 
 -- | Resolves the dependencies inherent to a 'FeatureSet', then superimposes modules and grammars 
 --   such that a single set of Haskell modules and at most one Happy grammar is produced.
-merge :: Registry -> FeatureSet -> IO (Either String (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+merge :: Registry -> FeatureSet -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
 merge reg names = case resolve reg names of
     Left err      -> return (Left (errLabel err))
     Right enabled -> do
@@ -303,7 +305,7 @@ merge reg names = case resolve reg names of
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
     putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
-    (haskell, happy) <- merge registry (Set.fromList names) >>= either die pure
+    (haskell, happy) <- merge registry (Set.fromList names) >>= either die return
     forM_ (Map.toList haskell) $ \(name, modl) ->
         writeIfChanged (dir ++ end name ++ ".hs") ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
     forM_ (Map.toList happy) $ \(name, gram) ->
@@ -318,7 +320,7 @@ writeIfChanged :: FilePath -> String -> IO ()
 writeIfChanged path new = length new `seq` do
     createDirectoryIfMissing True (takeDirectory path)
     exists <- doesFileExist path
-    same   <- if exists then fmap (== new) (readFile' path) else pure False
+    same   <- if exists then fmap (== new) (readFile' path) else return False
     unless same $ do
         writeFile path new
         putStrLn $ infoLabel "Updated source file " ++ path
@@ -369,7 +371,7 @@ listDeps = printFeatures "Listing all dependencies and joint implications..." re
 -- Listing feature combinations
 
 -- | Generates a list of all feature combinations.
-combos :: Either String [[(FeatureName, Bool)]]
+combos :: LHsMakeError [[(FeatureName, Bool)]]
 combos = do
     mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
     fmap (filter (not . null)) $
@@ -401,9 +403,10 @@ generate = do
 
 -- | Produces the feature combinations colored by 'generate'.
 generateCombos :: IO [[FeatureName]]
-generateCombos = either (ioError . userError . errLabel) 
-                        (return . filter (not . null) . map (map fst . filter snd)) 
-                        combos
+generateCombos =
+    either (die . errLabel)
+           (return . filter (not . null) . map (map fst . filter snd))
+           combos
 
 -------------------------------------------------------------------------------
 -- Dependencies
