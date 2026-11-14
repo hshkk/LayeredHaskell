@@ -28,6 +28,7 @@ import Data.Sequence (Seq)
 data LHsExpr
     = LHsLam (Seq LHsPat) LHsExpr     -- ^ A lambda abstraction.
     | LHsBin  LHsBin LHsExpr LHsExpr  -- ^ A binary operation.
+    | LHsPre  LHsBin                  -- ^ A binary operator written in prefix form.
     deriving (Eq, Show)
 
 -- | A binary operator.

@@ -59,9 +59,14 @@ import LH.Text.Token
 Expr :: { LHsExpr }
     : '[' ListExpr ']'                        { LHsList $2 }
     | '(' Expr ',' Expr CommaExprs ')'        { LHsTuple ($2 <| ($4 <| $5)) }
-    | Expr ':' Expr                           { LHsBin LHsCons $1 $3 }
-    | Expr '++' Expr                          { LHsBin LHsAppend $1 $3 }
-    | Expr '!!' Expr                          { LHsBin LHsIndex $1 $3 }
+    | Expr ':' Expr                           { LHsBin LHsListCons $1 $3 }
+    | Expr '++' Expr                          { LHsBin LHsListAppend $1 $3 }
+    | Expr '!!' Expr                          { LHsBin LHsListIndex $1 $3 }
+
+Bin :: { LHsBin }
+    : ':'                                     { LHsListCons }
+    | '++'                                    { LHsListAppend }
+    | '!!'                                    { LHsListIndex }
 
 ListExpr :: { Seq LHsExpr }
     : Expr CommaExprs                         { $1 <| $2 }

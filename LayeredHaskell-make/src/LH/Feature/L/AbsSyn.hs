@@ -33,9 +33,9 @@ data LHsExpr
 --
 --   Note that binary operations in LHsExpr are provided by F, which L depends on.
 data LHsBin
-    = LHsCons
-    | LHsAppend
-    | LHsIndex
+    = LHsListCons
+    | LHsListAppend
+    | LHsListIndex
     deriving (Eq, Show)
 
 data LHsPat

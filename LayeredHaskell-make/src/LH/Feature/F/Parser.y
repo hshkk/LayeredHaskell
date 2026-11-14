@@ -36,11 +36,13 @@ import LH.Text.Token
 %expect 0
 
 %token
-    '\\' { LHsLexeme _ LHsTkLam }
-    '->' { LHsLexeme _ LHsTkArrow }
+    '\\' { LHsLexeme _ LHsTkLam        }
+    '->' { LHsLexeme _ LHsTkArrow      }
     '_'  { LHsLexeme _ LHsTkUnderscore }
-    '$'  { LHsLexeme _ LHsTkDollar }
-    '.'  { LHsLexeme _ LHsTkDot }
+    '$'  { LHsLexeme _ LHsTkDollar     }
+    '.'  { LHsLexeme _ LHsTkDot        }
+    '('  { LHsLexeme _ LHsTkLParen     }
+    ')'  { LHsLexeme _ LHsTkRParen     }
 
 %left  LAM
 %right '$'
@@ -58,6 +60,13 @@ Expr :: { LHsExpr }
      : '\\' PatApp '->' Expr %prec LAM { LHsLam $2 $4 }
      | Expr '$' Expr                   { LHsBin LHsFunApp  $1 $3 }
      | Expr '.' Expr                   { LHsBin LHsFunComp $1 $3 }
+
+Atom :: { LHsExpr }
+    : '(' Bin ')' { LHsPre $2 }
+
+Bin :: { LHsBin }
+    : '$'         { LHsFunApp  }
+    | '.'         { LHsFunComp }
 
 -------------------------------------------------------------------------------
 -- Patterns

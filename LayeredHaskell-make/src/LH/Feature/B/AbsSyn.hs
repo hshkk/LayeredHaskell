@@ -26,6 +26,7 @@ module LH.Feature.AbsSyn (
 data LHsExpr
     = LHsInt  Int                     -- ^ An integer.
     | LHsBin  LHsBin LHsExpr LHsExpr  -- ^ A binary operation.
+    | LHsPre  LHsBin                  -- ^ A binary operator written in prefix form.
     | LHsNeg  LHsExpr                 -- ^ Negation.
     | LHsIf   LHsExpr LHsExpr LHsExpr -- ^ An @if@ expression.
     -- Note that we do not need a dedicated Boolean representation, since LHsCon provides this already.
