@@ -35,6 +35,9 @@ import LH.Text.Token
 -- There must be no shift/reduce conflicts. 
 %expect 0
 
+%token
+    var    { LHsLexeme _ (LHsTkVar $$) }
+
 %%
 
 -------------------------------------------------------------------------------

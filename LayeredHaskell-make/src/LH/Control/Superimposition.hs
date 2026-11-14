@@ -40,12 +40,24 @@ The following example illustrates its use on two Haskell files.
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-module LH.Control.Superimposition where
+module LH.Control.Superimposition (
+    -- * Superimposition
+    Superimposable (..), Identifiable (..),
+    -- ** Identifiers
+    DeclId (..), DirectiveId (..),
+    -- ** Flattening lists
+    flattenDecls, flattenTokens,
+    -- ** Token precedences
+    precs
+    ) where
 
 import Control.Applicative ((<|>))
 import Data.Char           (isSpace)
-import Data.List           (find, nub, partition)
+import Data.List           (nub, partition)
+import Data.Map            (Map)
 import Data.Maybe          (catMaybes)
+
+import qualified Data.Map as Map
 
 import qualified Happy.Frontend.AbsSyn        as Y
 import qualified Happy.Frontend.PrettyGrammar as Y
@@ -63,8 +75,9 @@ infixl 6 -->
 --   Specific instances replace this behavior with a merging semantics.
 class Superimposable a where
     -- | Superimposes two values.
-    (-->) :: a -> a -> a
-    x --> _ = x
+    --   Note that superimposition can fail for various reasons, such as when differing module names are encountered.
+    (-->) :: a -> a -> Either String a
+    x --> _ = Right x
 
 -- | An 'Identifiable' type @a@ has an 'Identifier', which is a value of some type identifying a value of type @a@.
 --   'Identifier' is defined on a case-by-case basis, since a type @a@ might need a different identification mechanism than another type @b@.
@@ -73,15 +86,17 @@ class Superimposable a where
 class Identifiable a where
     type Identifier a
     -- | Identifies a value.
-    identify :: a -> Identifier a
+    identify :: a -> Either String (Identifier a)
 
 -- | Lists are superimposed element by element. 
 --   Elements with the same identifier are superimposed, and elements that only the right list has are added at the end.
 instance (Identifiable a, Eq (Identifier a), Superimposable a) => Superimposable [a] where
-    xs --> ys = foldr seq (merged ++ added) (map identify (xs ++ ys))
-        where
-            merged = [maybe x (x -->) (find ((== identify x) . identify) ys) | x <- xs]
-            added  = [y | y <- ys, identify y `notElem` map identify xs]
+    xs --> ys = do
+        xids   <- traverse identify xs
+        yids   <- traverse identify ys
+        merged <- sequence [maybe (Right x) (x -->) (lookup xid (zip yids ys)) | (x, xid) <- zip xs xids]
+        let added = [y | (y, yid) <- zip ys yids, yid `notElem` xids]
+        return (merged ++ added)
 
 -------------------------------------------------------------------------------
 -- Haskell
@@ -94,34 +109,34 @@ instance Superimposable H.HsMatch
 
 instance Identifiable H.HsQName where
     type Identifier H.HsQName = H.HsQName
-    identify = id
+    identify = Right
 
 instance Identifiable H.HsCName where
     type Identifier H.HsCName = H.HsName
-    identify (H.HsVarName name) = name
-    identify (H.HsConName name) = name
+    identify (H.HsVarName name) = Right name
+    identify (H.HsConName name) = Right name
 
 instance Identifiable H.HsConDecl where
     type Identifier H.HsConDecl = H.HsName
-    identify (H.HsConDecl _ name _) = name
-    identify (H.HsRecDecl _ name _) = name
+    identify (H.HsConDecl _ name _) = Right name
+    identify (H.HsRecDecl _ name _) = Right name
 
 -- | A function is identified by its patterns.
 instance Identifiable H.HsMatch where
     type Identifier H.HsMatch = [H.HsPat]
-    identify (H.HsMatch _ _ pats _ _) = pats
+    identify (H.HsMatch _ _ pats _ _) = Right pats
 
 -- Modules --------------------------------------------------------------------
 
 -- | To superimpose two Haskell modules, they must have the same name.
 instance Superimposable H.HsModule where
     H.HsModule loc mod1 exps1 imps1 decls1 --> H.HsModule _ mod2 exps2 imps2 decls2
-        | mod1 == mod2
-            = H.HsModule loc mod1
-                        (liftA2 (-->) exps1 exps2)
-                        (imps1 --> imps2)
-                        (concatMap flattenDecls decls1 --> concatMap flattenDecls decls2)
-        | otherwise = error ("Cannot merge differing modules: " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2)
+        | mod1 == mod2 = do
+            exps  <- sequenceA (liftA2 (-->) exps1 exps2)
+            imps  <- imps1 --> imps2
+            decls <- concatMap flattenDecls decls1 --> concatMap flattenDecls decls2
+            return (H.HsModule loc mod1 exps imps decls)
+        | otherwise = Left ("Cannot merge differing modules: " ++ H.prettyPrint mod1 ++ " and " ++ H.prettyPrint mod2)
 
 -- | Splits a declaration holding several names into one declaration per name.
 --   Variable bindings (such as @x = e@) are also rewritten as function bindings, since they get parsed as a pattern binding.
@@ -137,52 +152,63 @@ flattenDecls decl = [decl]
 -- Exports --------------------------------------------------------------------
 
 instance Superimposable H.HsExportSpec where
-    x@(H.HsEThingAll _) --> _                      = x
-    _ --> y@(H.HsEThingAll _)                      = y
-    H.HsEThingWith name xs --> H.HsEThingWith _ ys = H.HsEThingWith name (xs --> ys)
-    H.HsEAbs _ --> y@(H.HsEThingWith _ _)          = y
-    x --> _                                        = x
+    x@(H.HsEThingAll _) --> _                      = Right x
+    _ --> y@(H.HsEThingAll _)                      = Right y
+    H.HsEThingWith name xs --> H.HsEThingWith _ ys = H.HsEThingWith name <$> (xs --> ys)
+    H.HsEAbs _ --> y@(H.HsEThingWith _ _)          = Right y
+    x --> _                                        = Right x
 
 instance Identifiable H.HsExportSpec where
     type Identifier H.HsExportSpec = Either H.HsQName H.Module  -- an entity, or a whole module
-    identify (H.HsEVar name)         = Left name
-    identify (H.HsEAbs name)         = Left name
-    identify (H.HsEThingAll name)    = Left name
-    identify (H.HsEThingWith name _) = Left name
-    identify (H.HsEModuleContents m) = Right m
+    identify (H.HsEVar name)         = Right (Left name)
+    identify (H.HsEAbs name)         = Right (Left name)
+    identify (H.HsEThingAll name)    = Right (Left name)
+    identify (H.HsEThingWith name _) = Right (Left name)
+    identify (H.HsEModuleContents m) = Right (Right m)
 
 -- Imports --------------------------------------------------------------------
 
 instance Superimposable H.HsImportDecl where
-    x --> y = x { H.importSpecs = liftA2 (-->) (H.importSpecs x) (H.importSpecs y) }
+    x --> y = do
+        specs <- sequenceA (liftA2 (-->) (H.importSpecs x) (H.importSpecs y))
+        return (x { H.importSpecs = specs })
 
 instance Identifiable H.HsImportDecl where
     type Identifier H.HsImportDecl = (H.Module, Bool, Maybe H.Module)
-    identify imp = (H.importModule imp, H.importQualified imp, H.importAs imp)
+    identify imp = Right (H.importModule imp, H.importQualified imp, H.importAs imp)
 
 -- | A list of module imports.
 --   @(False, xs)@ imports only @xs@, and @(True, xs)@ imports everything except @xs@.
 type ImportList = (Bool, [H.HsImportSpec])
 
 instance Superimposable ImportList where
-    (False, xs) --> (False, ys) = (False, xs --> ys)
-    (True,  xs) --> (True,  ys) = (True,  [x | x <- xs, identify x `elem`    map identify ys])
-    (False, xs) --> (True,  ys) = (True,  [y | y <- ys, identify y `notElem` map identify xs])
-    (True,  xs) --> (False, ys) = (True,  [x | x <- xs, identify x `notElem` map identify ys])
+    (False, xs) --> (False, ys) = fmap ((,) False) (xs --> ys)
+    (True,  xs) --> (True,  ys) = do
+        xids <- traverse identify xs
+        yids <- traverse identify ys
+        return (True, [x | (x, xid) <- zip xs xids, xid `elem` yids])
+    (False, xs) --> (True,  ys) = do
+        xids <- traverse identify xs
+        yids <- traverse identify ys
+        return (True, [y | (y, yid) <- zip ys yids, yid `notElem` xids])
+    (True,  xs) --> (False, ys) = do
+        xids <- traverse identify xs
+        yids <- traverse identify ys
+        return (True, [x | (x, xid) <- zip xs xids, xid `notElem` yids])
 
 instance Superimposable H.HsImportSpec where
-    x@(H.HsIThingAll _) --> _                      = x
-    _ --> y@(H.HsIThingAll _)                      = y
-    H.HsIThingWith name xs --> H.HsIThingWith _ ys = H.HsIThingWith name (xs --> ys)
-    H.HsIAbs _ --> y@(H.HsIThingWith _ _)          = y
-    x --> _                                        = x
+    x@(H.HsIThingAll _) --> _                      = Right x
+    _ --> y@(H.HsIThingAll _)                      = Right y
+    H.HsIThingWith name xs --> H.HsIThingWith _ ys = fmap (H.HsIThingWith name) (xs --> ys)
+    H.HsIAbs _ --> y@(H.HsIThingWith _ _)          = Right y
+    x --> _                                        = Right x
 
 instance Identifiable H.HsImportSpec where
     type Identifier H.HsImportSpec = H.HsName
-    identify (H.HsIVar name)         = name
-    identify (H.HsIAbs name)         = name
-    identify (H.HsIThingAll name)    = name
-    identify (H.HsIThingWith name _) = name
+    identify (H.HsIVar name)         = Right name
+    identify (H.HsIAbs name)         = Right name
+    identify (H.HsIThingAll name)    = Right name
+    identify (H.HsIThingWith name _) = Right name
 
 -- Declarations ---------------------------------------------------------------
 
@@ -200,25 +226,27 @@ data DeclId
 
 instance Identifiable H.HsDecl where
     type Identifier H.HsDecl = DeclId
-    identify (H.HsTypeDecl _ name _ _)                  = TypeI name
-    identify (H.HsDataDecl _ _ name _ _ _)              = TypeI name
-    identify (H.HsNewTypeDecl _ _ name _ _ _)           = TypeI name
-    identify (H.HsFunBind (H.HsMatch _ name _ _ _ : _)) = ValueI name
-    identify (H.HsTypeSig _ [name] _)                   = SigI name
-    identify (H.HsInfixDecl _ _ _ [H.HsVarOp name])     = FixityI name
-    identify (H.HsInfixDecl _ _ _ [H.HsConOp name])     = FixityI name
-    identify decl = error ("Cannot merge this declaration: "
-                           ++ takeWhile (/= '\n') (dropWhile isSpace (H.prettyPrint decl)))
+    identify (H.HsTypeDecl _ name _ _)                  = Right (TypeI name)
+    identify (H.HsDataDecl _ _ name _ _ _)              = Right (TypeI name)
+    identify (H.HsNewTypeDecl _ _ name _ _ _)           = Right (TypeI name)
+    identify (H.HsFunBind (H.HsMatch _ name _ _ _ : _)) = Right (ValueI name)
+    identify (H.HsTypeSig _ [name] _)                   = Right (SigI name)
+    identify (H.HsInfixDecl _ _ _ [H.HsVarOp name])     = Right (FixityI name)
+    identify (H.HsInfixDecl _ _ _ [H.HsConOp name])     = Right (FixityI name)
+    identify decl = Left ("Cannot merge this declaration: "
+                          ++ takeWhile (/= '\n') (dropWhile isSpace (H.prettyPrint decl)))
 
 -- | Datatype declarations and functions are merged.
 --   Type synonyms, @newtype@s, type signatures, and fixity declarations are overridden from the left.
 instance Superimposable H.HsDecl where
-    H.HsDataDecl loc ctx name vars cons1 derivs1 --> H.HsDataDecl _ _ _ _ cons2 derivs2
-        = H.HsDataDecl loc ctx name vars (cons1 --> cons2) (derivs1 --> derivs2)
+    H.HsDataDecl loc ctx name vars cons1 derivs1 --> H.HsDataDecl _ _ _ _ cons2 derivs2 = do
+        cons   <- cons1 --> cons2
+        derivs <- derivs1 --> derivs2
+        return (H.HsDataDecl loc ctx name vars cons derivs)
     H.HsFunBind ms1 --> H.HsFunBind ms2
         | length (nub [length pats | H.HsMatch _ _ pats _ _ <- ms1 ++ ms2]) == 1
-        = H.HsFunBind (ms1 --> ms2)
-    x --> _ = x
+        = fmap H.HsFunBind (ms1 --> ms2)
+    x --> _ = Right x
 
 -------------------------------------------------------------------------------
 -- Happy
@@ -229,77 +257,133 @@ instance Superimposable (Y.Prod String)
 -- | A production is identified by its RHS.
 instance Identifiable (Y.Prod String) where
     type Identifier (Y.Prod String) = [String]
-    identify (Y.Prod terms _ _ _) = map (Y.render . Y.ppTerm) terms
+    identify (Y.Prod terms _ _ _) = Right (map (Y.render . Y.ppTerm) terms)
 
 instance Superimposable (Y.Rule String) where
     Y.Rule name params1 prods1 ty1 --> Y.Rule _ params2 prods2 ty2
-        | params1 == params2 = Y.Rule name params1 (prods1 --> prods2) (ty1 <|> ty2)
-    rule --> _ = rule
+        | params1 == params2 = do
+            prods <- prods1 --> prods2
+            return (Y.Rule name params1 prods (ty1 <|> ty2))
+    rule --> _ = Right rule
 
 instance Identifiable (Y.Rule String) where
     type Identifier (Y.Rule String) = String
-    identify (Y.Rule name _ _ _) = name
+    identify (Y.Rule name _ _ _) = Right name
 
 -- | @%token@ directives are merged and @%name@ directives are overridden from the left.
 --   Other differing directives are simply rejected.
 instance Superimposable (Y.Directive String) where
-    x@(Y.TokenSpec _)  --> _ = x
-    x@(Y.TokenName {}) --> _ = x
+    x@(Y.TokenSpec _)  --> _ = Right x
+    x@(Y.TokenName {}) --> _ = Right x
     x --> y
-        | x == y    = x
-        | otherwise = error ("Cannot merge differing directives: " ++ show x ++ " and " ++ show y)
+        | x == y    = Right x
+        | otherwise = Left ("Cannot merge differing directives: " ++ show x ++ " and " ++ show y)
 
 -- | Identifiers for Happy directives.
 data DirectiveId
     = TokenI     String  -- ^ A @%token@ directive, one per token.
     | NameI      String  -- ^ The @%name@ directive.
     | AttributeI String  -- ^ The @%attribute@ directive.
+    | PrecI      String  -- ^ A precedence directive, @%left@, @%right@, or @%nonassoc@.
     | OtherI     String  -- ^ Any other directive.
     deriving Eq
 
 instance Identifiable (Y.Directive String) where
     type Identifier (Y.Directive String) = DirectiveId
-    identify (Y.TokenSpec [(name, _)]) = TokenI name
-    identify (Y.TokenName _ _ True)    = error "Cannot merge %partial directives"
-    identify (Y.TokenName name _ _)    = NameI name
-    identify (Y.TokenAttribute name _) = AttributeI name
-    identify dir                       = OtherI (takeWhile (/= ' ') (show dir))
+    identify (Y.TokenSpec [(name, _)]) = Right (TokenI name)
+    identify (Y.TokenName _ _ True)    = Left "Cannot merge %partial directives"
+    identify (Y.TokenName name _ _)    = Right (NameI name)
+    identify (Y.TokenAttribute name _) = Right (AttributeI name)
+    identify (Y.TokenLeft [name])      = Right (PrecI name)
+    identify (Y.TokenRight [name])     = Right (PrecI name)
+    identify (Y.TokenNonassoc [name])  = Right (PrecI name)
+    identify dir                       = Right (OtherI (takeWhile (/= ' ') (show dir)))
 
--- | Splits @%token a b@ into @%token a@ and @%token b@, but leaves all other directives alone.
+-- | Splits @x a b@ into @x a@ and @x b@, where @x@ ranges over @%token@, @%left@, @%right@, and @%nonassoc@.
+--   Leaves all other directives alone.
 flattenTokens :: [Y.Directive String] -> [Y.Directive String]
 flattenTokens = (=<<) flattenToken
     where
-        flattenToken (Y.TokenSpec specs) = map (Y.TokenSpec . return) specs
+        flattenToken (Y.TokenSpec specs)    = map (Y.TokenSpec . return) specs
+        flattenToken (Y.TokenLeft toks)     = map (Y.TokenLeft . return) toks
+        flattenToken (Y.TokenRight toks)    = map (Y.TokenRight . return) toks
+        flattenToken (Y.TokenNonassoc toks) = map (Y.TokenNonassoc . return) toks
         flattenToken dir = return dir
 
+-- | Precedences of tokens, where a higher number binds tighter than a lower one.
+--   The (relative) precedences of tokens corresponding to operators borrow directly from standard Haskell.
+--   Operator associativity is defined within the parser files themselves.
+-- 
+--   ==== __Precedences__
+--
+--   > LAM                0
+--   > 'in'               1
+--   > 'else'             2
+--   > '$'                3
+--   > '||'               4
+--   > '&&'               5
+--   > '==' '/='          6
+--   > '<' '>' '<=' '>='  7
+--   > ':' '++'           8
+--   > '+' '-'            9
+--   > '*'               10
+--   > NEG               11
+--   > '.' '!!'          12
+precs :: Map String Int
+precs = Map.fromList
+    [ ("LAM",    0)
+    , ("'in'",   1)
+    , ("'else'", 2)
+    , ("'$'",    3)
+    , ("'||'",   4)
+    , ("'&&'",   5)
+    , ("'=='",   6), ("'/='",  6)
+    , ("'<'",    7), ("'>'",   7), ("'<='",  7), ("'>='", 7)
+    , ("':'",    8), ("'++'",  8)
+    , ("'+'",    9), ("'-'",   9)
+    , ("'*'",   10)
+    , ("NEG",   11)
+    , ("'.'",   12), ("'!!'", 12)
+    ]
+
+-- | Groups precedence directives by the precedence and associativity of the involved tokens.
+--   If a token with an unknown precedence is detected, an error will be thrown.
+groupPrecs :: [Y.Directive String] -> Either String [Y.Directive String]
+groupPrecs prios = do
+    tokPrecs <- mapM precOf toks
+    return
+        [ dir toksAtPrec
+        | prec <- [0 .. maximum precs]
+        , dir  <- [Y.TokenLeft, Y.TokenRight, Y.TokenNonassoc]
+        , let toksAtPrec = [tok | (tok, p) <- tokPrecs, p == prec, dir [tok] `elem` prios]
+        , not (null toksAtPrec) ]
+    where
+        toks       = concatMap Y.getPrioNames prios
+        precOf tok = maybe (Left ("Unknown precedence for: " ++ tok)) (\p -> Right (tok, p)) (Map.lookup tok precs)
+
 instance Superimposable (Y.AbsSyn String) where
-    Y.AbsSyn dirs1 rules1 --> Y.AbsSyn dirs2 rules2
-        = Y.AbsSyn (lower ++ (flattenTokens dirs1 --> flattenTokens others2)) (rules1 --> rules2)
-        where
-            (prios2, others2) = partition (`elem` Y.getPrios dirs2) dirs2
-            prios1 = concatMap Y.getPrioNames (Y.getPrios dirs1)
-            lower  = 
-                [ assoc toks
-                | prio <- prios2
-                , let toks  = filter (`notElem` prios1) (Y.getPrioNames prio)
-                      assoc = case prio of Y.TokenLeft  _ -> Y.TokenLeft
-                                           Y.TokenRight _ -> Y.TokenRight
-                                           _              -> Y.TokenNonassoc
-                , not (null toks) ]
+    Y.AbsSyn dirs1 rules1 --> Y.AbsSyn dirs2 rules2 = do
+        merged  <- flattenTokens dirs1 --> flattenTokens dirs2
+        rules   <- rules1 --> rules2
+        let (prios, others) = partition (`elem` Y.getPrios merged) merged
+        grouped <- groupPrecs prios
+        return (Y.AbsSyn (others ++ grouped) rules)
 
 -- | Happy grammars are superimposed by first superimposing the header and footer as a Haskell module.
 --   Then, each rule is superimposed.
 instance Superimposable Y.BookendedAbsSyn where
-    Y.BookendedAbsSyn opts1 head1 syn1 foot1 --> Y.BookendedAbsSyn opts2 head2 syn2 foot2
-        = Y.BookendedAbsSyn (opts1 <|> opts2)
+    Y.BookendedAbsSyn opts1 head1 syn1 foot1 --> Y.BookendedAbsSyn opts2 head2 syn2 foot2 = do
+        modl1 <- parse head1 foot1
+        modl2 <- parse head2 foot2
+        H.HsModule loc name exps imps decls <- modl1 --> modl2
+        syn <- syn1 --> syn2
+        return (Y.BookendedAbsSyn (opts1 <|> opts2)
                             -- The header contains the Haskell module declaration and imports.
                             (Just (H.prettyPrint (H.HsModule loc name exps imps [])))
-                            (syn1 --> syn2)
+                            syn
                             -- The footer contains Haskell declarations.
-                            (Just (unlines (map H.prettyPrint decls)))
+                            (Just (unlines (map H.prettyPrint decls))))
         where
-            H.HsModule loc name exps imps decls = parse head1 foot1 --> parse head2 foot2
-
             parse header footer = case H.parseModule (unlines (catMaybes [header, footer])) of
-                H.ParseOk modl      -> modl
-                H.ParseFailed _ msg -> error ("Invalid Happy header or footer: " ++ msg)
+                H.ParseOk modl      -> Right modl
+                H.ParseFailed _ msg -> Left ("Invalid Happy header or footer: " ++ msg)

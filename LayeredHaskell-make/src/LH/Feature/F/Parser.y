@@ -39,8 +39,12 @@ import LH.Text.Token
     '\\' { LHsLexeme _ LHsTkLam }
     '->' { LHsLexeme _ LHsTkArrow }
     '_'  { LHsLexeme _ LHsTkUnderscore }
+    '$'  { LHsLexeme _ LHsTkDollar }
+    '.'  { LHsLexeme _ LHsTkDot }
 
-%left LAM
+%left  LAM
+%right '$'
+%right '.'
 
 %%
 
@@ -48,24 +52,23 @@ import LH.Text.Token
 -- Rules
 
 -------------------------------------------------------------------------------
--- Declarations
-
--------------------------------------------------------------------------------
 -- Expressions
 
 Expr :: { LHsExpr }
      : '\\' PatApp '->' Expr %prec LAM { LHsLam $2 $4 }
+     | Expr '$' Expr                   { LHsBin LHsFunApp  $1 $3 }
+     | Expr '.' Expr                   { LHsBin LHsFunComp $1 $3 }
 
 -------------------------------------------------------------------------------
 -- Patterns
 
 -- A sequence of patterns (separated by juxtaposition).
 Pats :: { Seq LHsPat }
-     : PatApp      { $1 }
+     : PatApp         { $1 }
 
 PatAtom :: { LHsPat }
-    : var          { LHsPVar $1 }
-    | '_'          { LHsPWild }
+    : var             { LHsPVar $1 }
+    | '_'             { LHsPWild }
 
 -------------------------------------------------------------------------------
 -- Types

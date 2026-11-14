@@ -93,13 +93,13 @@ Expr :: { LHsExpr }
     | App                   { $1 }
 
 App :: { LHsExpr }
-    : App Atom { LHsApp $1 $2 }
-    | Atom     { $1 }
+    : App Atom              { LHsApp $1 $2 }
+    | Atom                  { $1 }
 
 Atom :: { LHsExpr }
-    : var          { LHsVar $1 }
-    | con          { LHsCon $1 }
-    | '(' Expr ')' { $2 }
+    : var                   { LHsVar $1 }
+    | con                   { LHsCon $1 }
+    | '(' Expr ')'          { $2 }
 
 -------------------------------------------------------------------------------
 -- Patterns
@@ -107,16 +107,16 @@ Atom :: { LHsExpr }
 -- A sequence of patterns (separated by juxtaposition).
 -- E contains no patterns, so this rule is empty.
 Pats :: { Seq LHsPat }
-    : {- ε -}           { Seq.empty }
+    : {- ε -}               { Seq.empty }
 
 Pat :: { LHsPat }
-    : PatAtom      { $1 }
+    : PatAtom               { $1 }
 
 PatApp :: { Seq LHsPat }
-    : PatAtom Pats      { $1 <| $2 }
+    : PatAtom Pats          { $1 <| $2 }
 
 PatAtom :: { LHsPat }
-    : '(' Pat ')'  { $2 }
+    : '(' Pat ')'           { $2 }
 
 -------------------------------------------------------------------------------
 -- Types
@@ -124,13 +124,13 @@ PatAtom :: { LHsPat }
 -- The following rules are intentionally non-terminating, since E has no meaningful types.
 
 Type :: { LHsType }
-    : TyApp         { $1 }
+    : TyApp                 { $1 }
 
 TyApp :: { LHsType }
-    : TyAtom { $1 }
+    : TyAtom                { $1 }
 
 TyAtom :: { LHsType }
-    : '(' Type ')' { $2 }
+    : '(' Type ')'          { $2 }
 
 {
 -- | Gives the parser the next token. 

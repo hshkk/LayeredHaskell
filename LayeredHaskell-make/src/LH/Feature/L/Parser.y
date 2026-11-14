@@ -38,13 +38,15 @@ import LH.Text.Token
 %expect 0
 
 %token
-    '++' {LHsLexeme _ LHsTkPlusPlus }
-    ':'  {LHsLexeme _ LHsTkColon }
-    '['  {LHsLexeme _ LHsTkLBrack }
-    ']'  {LHsLexeme _ LHsTkRBrack }
-    ','  {LHsLexeme _ LHsTkComma }
+    '++' { LHsLexeme _ LHsTkPlusPlus }
+    ':'  { LHsLexeme _ LHsTkColon }
+    '['  { LHsLexeme _ LHsTkLBrack }
+    ']'  { LHsLexeme _ LHsTkRBrack }
+    ','  { LHsLexeme _ LHsTkComma }
+    '!!' { LHsLexeme _ LHsTkExclExcl }
 
 %right ':' '++'
+%left  '!!'
 
 %%
 
@@ -57,8 +59,9 @@ import LH.Text.Token
 Expr :: { LHsExpr }
     : '[' ListExpr ']'                        { LHsList $2 }
     | '(' Expr ',' Expr CommaExprs ')'        { LHsTuple ($2 <| ($4 <| $5)) }
-    | Expr ':' Expr                           { LHsListCons $1 $3 }
-    | Expr '++' Expr                          { LHsListAppend $1 $3 }
+    | Expr ':' Expr                           { LHsBin LHsCons $1 $3 }
+    | Expr '++' Expr                          { LHsBin LHsAppend $1 $3 }
+    | Expr '!!' Expr                          { LHsBin LHsIndex $1 $3 }
 
 ListExpr :: { Seq LHsExpr }
     : Expr CommaExprs                         { $1 <| $2 }
@@ -90,9 +93,9 @@ CommaPats :: { Seq LHsPat }
 -- Types
 
 TyAtom :: { LHsType }
-    : '[' Type ']'                       { LHsTyList $2 }
-    | '(' Type ',' Type CommaSepTy ')'   { LHsTyTuple ($2 <| ($4 <| $5)) }
+    : '[' Type ']'                     { LHsTyList $2 }
+    | '(' Type ',' Type CommaTys ')'   { LHsTyTuple ($2 <| ($4 <| $5)) }
 
-CommaSepTy :: { Seq LHsType }
-    : ',' Type CommaSepTy   { $2 <| $3 }
-    | {- ε -}               { Seq.empty }
+CommaTys :: { Seq LHsType }
+    : ',' Type CommaTys                { $2 <| $3 }
+    | {- ε -}                          { Seq.empty }

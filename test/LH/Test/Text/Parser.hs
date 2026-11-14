@@ -101,8 +101,8 @@ cases =
     , Case "parser (PB)"  ["P", "B"]      (concat [e, b, d, p])
     , Case "parser (L)"   ["L"]           (concat [e, d, f, l, fd])
     , Case "parser (PL)"  ["P", "L"]      (concat [e, d, p, f, l, fd, fp, pl])
-    , Case "parser (LB)"  ["L", "B"]      (concat [e, b, d, f, l, fb, fd])
-    , Case "parser (PLB)" ["P", "L", "B"] (concat [e, b, d, p, f, l, fb, fd, fp, pl])
+    , Case "parser (LB)"  ["L", "B"]      (concat [e, b, d, f, l, fb, fd, lb])
+    , Case "parser (PLB)" ["P", "L", "B"] (concat [e, b, d, p, f, l, fb, fd, fp, lb, pl])
     , Case "parser (PFB)" ["P", "F", "B"] (concat [e, b, d, p, f, fb, fd, fp])
     ]
 
@@ -239,6 +239,22 @@ f =
         "application of lambda abstractions"
         "y = (\\x -> x) (\\z -> z)"
         "LHsEqn \"y\" (fromList []) (LHsApp (LHsLam (fromList [LHsPVar \"x\"]) (LHsVar \"x\")) (LHsLam (fromList [LHsPVar \"z\"]) (LHsVar \"z\")))"
+    , source
+        "function application operator"
+        "z = x $ y"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsFunApp (LHsVar \"x\") (LHsVar \"y\"))"
+    , source
+        "function application operator is right-associative"
+        "z = x $ y $ u"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsFunApp (LHsVar \"x\") (LHsBin LHsFunApp (LHsVar \"y\") (LHsVar \"u\")))"
+    , source
+        "function composition operator"
+        "z = x . y"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsFunComp (LHsVar \"x\") (LHsVar \"y\"))"
+    , source
+        "function composition operator is right-associative"
+        "z = x . y . u"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsFunComp (LHsVar \"x\") (LHsBin LHsFunComp (LHsVar \"y\") (LHsVar \"u\")))"
     ]
 
 fb :: [Source]
@@ -275,6 +291,14 @@ fb =
         "pattern matching with a wildcard as the only argument"
         "justFive _ = 5"
         "LHsEqn \"justFive\" (fromList [LHsPWild]) (LHsInt 5)"
+    , source
+        "function application operator binds weaker than arithmetic operators"
+        "f = g $ 1 + 3"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsFunApp (LHsVar \"g\") (LHsBin LHsAdd (LHsInt 1) (LHsInt 3)))"
+    , source
+        "function application operator binds weaker than logic operators"
+        "f = g $ h || i"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsFunApp (LHsVar \"g\") (LHsBin LHsOr (LHsVar \"h\") (LHsVar \"i\")))"
     ]
 
 fd :: [Source]
@@ -506,15 +530,23 @@ l =
     , source
         "cons operator"
         "z = x:y:z:[]"
-        "LHsEqn \"z\" (fromList []) (LHsListCons (LHsVar \"x\") (LHsListCons (LHsVar \"y\") (LHsListCons (LHsVar \"z\") (LHsList (fromList [])))))"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsCons (LHsVar \"x\") (LHsBin LHsCons (LHsVar \"y\") (LHsBin LHsCons (LHsVar \"z\") (LHsList (fromList [])))))"
     , source
         "append operator"
         "z = x ++ y"
-        "LHsEqn \"z\" (fromList []) (LHsListAppend (LHsVar \"x\") (LHsVar \"y\"))"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsAppend (LHsVar \"x\") (LHsVar \"y\"))"
     , source
         "append is right-associative"
         "z = x ++ y ++ u"
-        "LHsEqn \"z\" (fromList []) (LHsListAppend (LHsVar \"x\") (LHsListAppend (LHsVar \"y\") (LHsVar \"u\")))"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsAppend (LHsVar \"x\") (LHsBin LHsAppend (LHsVar \"y\") (LHsVar \"u\")))"
+    , source
+        "indexing operator"
+        "z = x !! y"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsIndex (LHsVar \"x\") (LHsVar \"y\"))"
+    , source
+        "indexing is left-associative"
+        "z = x !! y !! u"
+        "LHsEqn \"z\" (fromList []) (LHsBin LHsIndex (LHsBin LHsIndex (LHsVar \"x\") (LHsVar \"y\")) (LHsVar \"u\"))"
     , source
         "type signature with a nested list type"
         "xs :: [[Item]]"
@@ -535,6 +567,14 @@ l =
         "type synonym with a tuple type"
         "type ItemPair = (Item, Item)"
         "LHsType \"ItemPair\" (fromList []) (LHsTyTuple (fromList [LHsTyCon \"Item\" (fromList []),LHsTyCon \"Item\" (fromList [])]))"
+    ]
+
+lb :: [Source]
+lb =
+    [ source
+        "arithmetic operators bind stronger than cons"
+        "f = 1+2:3*4:[] == [7]"
+        "LHsEqn \"f\" (fromList []) (LHsBin LHsEq (LHsBin LHsCons (LHsBin LHsAdd (LHsInt 1) (LHsInt 2)) (LHsBin LHsCons (LHsBin LHsMul (LHsInt 3) (LHsInt 4)) (LHsList (fromList [])))) (LHsList (fromList [LHsInt 7])))"
     ]
 
 pl :: [Source]

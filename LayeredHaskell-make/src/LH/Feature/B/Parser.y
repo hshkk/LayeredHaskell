@@ -53,13 +53,13 @@ import LH.Text.Token
     'then'  { LHsLexeme _ LHsTkThen          }
     'else'  { LHsLexeme _ LHsTkElse          }
 
-%right 'else'
-%left '||'
-%left '&&'
+%right    'else'
+%left     '||'
+%left     '&&'
 %nonassoc '==' '/='
 %nonassoc '<' '>' '<=' '>='
-%left '+' '-'
-%left '*'
+%left     '+' '-'
+%left     '*'
 -- Negation takes the highest precedence.
 %left NEG
 
