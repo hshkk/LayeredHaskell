@@ -21,6 +21,7 @@ import Data.Sequence (Seq, (<|), (|>))
 
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
+import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -56,13 +57,13 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Expressions
 
-Expr :: { LHsExpr }
-     : '\\' PatApp '->' Expr %prec LAM { LHsLam $2 $4 }
-     | Expr '$' Expr                   { LHsBin LHsFunApp  $1 $3 }
-     | Expr '.' Expr                   { LHsBin LHsFunComp $1 $3 }
+Expr :: { L LHsExpr }
+     : '\\' PatApp '->' Expr %prec LAM { L ($1 >< $4) (LHsLam (un $2) $4) }
+     | Expr '$' Expr                   { L ($1 >< $3) (LHsBin LHsFunApp  $1 $3) }
+     | Expr '.' Expr                   { L ($1 >< $3) (LHsBin LHsFunComp $1 $3) }
 
-Atom :: { LHsExpr }
-    : '(' Bin ')' { LHsPre $2 }
+Atom :: { L LHsExpr }
+    : '(' Bin ')' { L ($1 >< $3) (LHsPre $2) }
 
 Bin :: { LHsBin }
     : '$'         { LHsFunApp  }
@@ -72,16 +73,16 @@ Bin :: { LHsBin }
 -- Patterns
 
 -- A sequence of patterns (separated by juxtaposition).
-Pats :: { Seq LHsPat }
-     : PatApp         { $1 }
+Pats :: { Seq (L LHsPat) }
+     : PatApp         { un $1 }
 
-PatAtom :: { LHsPat }
-    : var             { LHsPVar $1 }
-    | '_'             { LHsPWild }
+PatAtom :: { L LHsPat }
+    : var             { L (toSpan $1) (LHsPVar (ident $1)) }
+    | '_'             { L (toSpan $1) LHsPWild }
 
 -------------------------------------------------------------------------------
 -- Types
 
-Type :: { LHsType }
-    : TyApp '->' Type { LHsTyFn $1 $3 }
+Type :: { L LHsType }
+    : TyApp '->' Type { L ($1 >< $3) (LHsTyFn $1 $3) }
 

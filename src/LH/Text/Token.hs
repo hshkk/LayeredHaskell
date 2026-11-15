@@ -13,7 +13,7 @@ This module provides definitions for source positions and tokens.
 -}
 module LH.Text.Token (
     -- * Source positions
-    LHsPos (..), 
+    LHsPos (..), LHsSpan (..),
     -- * Tokens
     LHsToken (..), 
     -- ** Lexemes
@@ -102,6 +102,14 @@ data LHsToken
     | LHsTkEOF             -- ^ The token indicating end-of-file (EOF).
     deriving (Eq, Show)
 
--- | A token paired with its position in the source.
-data LHsLexeme = LHsLexeme !LHsPos !LHsToken
+-- | A set of contiguous positions in the source.
+--   A span can simply be described as the interval \([a,b)\), where \(a\) and \(b\) have type 'LHsPos'.
+data LHsSpan = LHsSpan
+    { spanStart :: !LHsPos    -- ^ The start, inclusive.
+    , spanEnd   :: !LHsPos    -- ^ The end, exclusive.
+    }
+    deriving (Eq, Show)
+
+-- | A token paired with its span in the source.
+data LHsLexeme = LHsLexeme !LHsSpan !LHsToken
     deriving (Eq, Show)

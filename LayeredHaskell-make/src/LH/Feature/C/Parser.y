@@ -23,6 +23,7 @@ import Data.Sequence (Seq, (<|))
 
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
+import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -39,7 +40,7 @@ import LH.Text.Token
 
 %token
     'case' { LHsLexeme _ LHsTkCase }
-    'of'   { LHsLexeme _ LHsTkOf }
+    'of'   { LHsLexeme _ LHsTkOf   }
 
 %%
 
@@ -49,10 +50,11 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Expressions
 
-Expr :: { LHsExpr }
-     : 'case' Expr 'of' OPEN CaseAlt CaseAlts End { LHsCase $2 ($5 <| $6) }
+Expr :: { L LHsExpr }
+     : 'case' Expr 'of' OPEN CaseAlt CaseAlts End 
+       { let alts = $5 <| $6 in L ($1 ><* fmap snd alts) (LHsCase $2 alts) }
 
-CaseAlts :: { Seq (LHsPat, LHsExpr) }
+CaseAlts :: { Seq LHsAlt }
          : SEMI CaseAlt CaseAlts                  { $2 <| $3 }
          | {- ε -}                                { Seq.empty }
 

@@ -47,7 +47,7 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Lazy     as LazyText
 
-import LH.Text.Token (LHsPos (..), LHsToken (..))
+import LH.Text.Token (LHsPos (..), LHsSpan (..), LHsToken (..))
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
@@ -166,11 +166,11 @@ popLayout = modify (\st -> st { stLayout = drop 1 (stLayout st) })
 
 -- | An error.
 data LHsError
-    = LexicalError    !LHsPos !Text             -- ^ A lexical error emitted by Alex.
-    | UnclosedComment !LHsPos                   -- ^ An unclosed multi-line comment error emitted by Alex.
-    | ParseError      !LHsPos !LHsPos !LHsToken -- ^ A parse error emitted by Happy. 
-                                                --   The first two arguments indicate where an unexpected token 
-                                                --   starts and ends in the source.
+    = LexicalError    !LHsPos !Text         -- ^ A lexical error emitted by Alex.
+    | UnclosedComment !LHsPos               -- ^ An unclosed multi-line comment error emitted by Alex.
+    | ParseError      !LHsSpan !LHsToken    -- ^ A parse error emitted by Happy. 
+                                            --   The first argument indicates where an unexpected token 
+                                            --   starts and ends in the source.
     deriving (Eq, Show)
 
 -- | Renders a 'LHsError' as a message referencing the source text.
@@ -192,20 +192,20 @@ buildError :: FilePath    -- ^ The filepath of the source text.
 buildError file (LexicalError pos bad) =
     errataSimple
         (Just ("Lexical error: unexpected `" <> bad <> "`"))
-        (underline file pos (Text.length bad) "this is not a valid token")
+        (underline file pos (pos { posCol = posCol pos + Text.length bad }) "this is not a valid token")
         Nothing
 buildError file (UnclosedComment pos) =
     errataSimple
         (Just "Unclosed comment")
-        (underline file pos 2 "this comment is never closed")
+        (underline file pos (pos { posCol = posCol pos + 2 }) "this comment is never closed")
         Nothing
-buildError file (ParseError start end bad) =
+buildError file (ParseError (LHsSpan start end) bad) =
     errataSimple
         (Just "Parse error")
-        (underline file start len label)
+        -- Virtual tokens have an empty span, so we underline at least one character.
+        (underline file start (end { posCol = max (posCol end) (posCol start + 1) }) label)
         Nothing
     where
-        len   = max 1 (posCol end - posCol start)
         label = case bad of
             LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
             LHsTkVClose -> "the block ends here, but something before it is unfinished"
@@ -214,9 +214,9 @@ buildError file (ParseError start end bad) =
 -- | Underlines a number of characters on a single line with a label, starting at a given position.
 underline :: FilePath    -- ^ The filepath of the source text.
           -> LHsPos      -- ^ The starting position.
-          -> Int         -- ^ The number of characters to underline from that position.
+          -> LHsPos      -- ^ The ending position (exclusive).
           -> Text        -- ^ A label.
           -> Block
-underline file (LHsPos l c) len label =
+underline file (LHsPos l c) (LHsPos _ c') label =
     blockSimple fancyRedStyle fancyRedPointer file Nothing
-        (l, c, c + len, Just label) Nothing
+        (l, c, c', Just label) Nothing
