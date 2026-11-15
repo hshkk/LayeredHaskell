@@ -21,6 +21,7 @@ import Data.Sequence (Seq, (<|))
 
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
+import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -36,23 +37,23 @@ import LH.Text.Token
 %expect 0
 
 %token
-    var    { LHsLexeme _ (LHsTkVar $$) }
+    var    { LHsLexeme _ (LHsTkVar _) }
 
 %%
 
 -------------------------------------------------------------------------------
 -- Types
 
-TyApp :: { LHsType }
-       : con TyAtoms    { LHsTyCon $1 $2 }
+TyApp :: { L LHsType }
+       : con TyAtoms    { L ($1 >< $2) (LHsTyCon (ident $1) (un $2)) }
 
-TyAtoms :: { Seq LHsType }
-       : TyAtom         { Seq.singleton $1 }
-       | TyAtoms TyAtom { $1 |> $2 }
+TyAtoms :: { L (Seq (L LHsType)) }
+       : TyAtom         { L (toSpan $1) (Seq.singleton $1) }
+       | TyAtoms TyAtom { L ($1 >< $2) (un $1 |> $2)       }
 
 -- Type variables.
 TyVars :: { Seq Id }
-       : var TyVars     { $1 <| $2 }
+       : var TyVars     { ident $1 <| $2 }
 
-TyAtom :: { LHsType }
-       : var            { LHsTyVar $1 }
+TyAtom :: { L LHsType }
+       : var            { L (toSpan $1) (LHsTyVar (ident $1)) }

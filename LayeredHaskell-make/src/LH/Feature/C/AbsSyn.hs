@@ -18,9 +18,11 @@ module LH.Feature.AbsSyn (
     LHsAlt
     ) where
 
-import Data.Sequence (Seq)
+import Data.Sequence   (Seq)
+
+import LH.Text.Located (L)
 
 data LHsExpr
-    = LHsCase LHsExpr (Seq LHsAlt) -- ^ A case expression.
+    = LHsCase (L LHsExpr) (Seq LHsAlt) -- ^ A case expression.
 
-type LHsAlt = (LHsPat, LHsExpr)
+type LHsAlt = (L LHsPat, L LHsExpr)    -- ^ A case alternative.

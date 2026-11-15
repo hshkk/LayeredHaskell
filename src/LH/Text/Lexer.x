@@ -168,6 +168,8 @@ tokens :-
 -- | An action performed by the lexer.
 --   Some actions may not necessarily produce a token 
 --   (such as opening/closing a comment), so 'Action' produces a 'Maybe' 'LHsToken'.
+--
+--   A span is produced by scanToken.
 type Action = LHsPos -> Text -> LHsParser (Maybe LHsToken)
 
 -- | Lifts a 'LHsToken' into an 'Action'.
@@ -252,6 +254,10 @@ notAtEnd _ _ _ inp = not (Text.null (aiText inp))
 -------------------------------------------------------------------------------
 -- Lexical tokenization
 
+-- | The span of @len@ characters starting at a position.
+spanOf :: LHsPos -> Int -> LHsSpan
+spanOf start@(LHsPos l c) len = LHsSpan start (LHsPos l (c + len))
+
 -- | Scans a /single/ 'LHsToken' from the input, producing a 'LHsLexeme'.
 scanToken :: LHsParser LHsLexeme
 scanToken = do
@@ -264,7 +270,7 @@ scanToken = do
         AlexSkip inp' _        -> setInput inp' >> scanToken
         AlexToken inp' len act -> do
             setInput inp'
-            act pos (Text.take len (aiText inp)) >>= maybe scanToken (return . LHsLexeme pos)
+            act pos (Text.take len (aiText inp)) >>= maybe scanToken (return . LHsLexeme (spanOf pos len))
     where
         -- | Handles the end of the input. We either have an 'UnclosedComment' error,
         --   or every layout block still open is closed before we produce the end-of-file token.
@@ -273,8 +279,8 @@ scanToken = do
             st <- gets (\st -> ([p | LHsStcd c p <- stStcds st, c == comment], stLayout st))
             case st of
                 (posns@(_:_), _) -> throwError (UnclosedComment (last posns))
-                ([], _:_) -> LHsLexeme pos LHsTkVClose <$ popLayout
-                ([], [])  -> return (LHsLexeme pos LHsTkEOF)
+                ([], _:_) -> LHsLexeme (spanOf pos 0) LHsTkVClose <$ popLayout
+                ([], [])  -> return (LHsLexeme (spanOf pos 0) LHsTkEOF)
 
 -- | Tokenizes the /entirety/ of the input, producing a (potential) list of 'LHsLexeme's.
 --   If the input is a program, one should use 'scanTokensAsProgram' instead.

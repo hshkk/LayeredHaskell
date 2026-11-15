@@ -40,13 +40,13 @@ import LH.Text.Token
 %expect 0
 
 %token
-    con    { LHsLexeme _ (LHsTkCon $$) }
-    'data' { LHsLexeme _ LHsTkData }
-    'type' { LHsLexeme _ LHsTkType }
-    '='    { LHsLexeme _ LHsTkEq }
-    '|'    { LHsLexeme _ LHsTkPipe }
-    '('    { LHsLexeme _ LHsTkLParen }
-    ')'    { LHsLexeme _ LHsTkRParen }
+    con    { LHsLexeme _ (LHsTkCon _) }
+    'data' { LHsLexeme _ LHsTkData    }
+    'type' { LHsLexeme _ LHsTkType    }
+    '='    { LHsLexeme _ LHsTkEq      }
+    '|'    { LHsLexeme _ LHsTkPipe    }
+    '('    { LHsLexeme _ LHsTkLParen  }
+    ')'    { LHsLexeme _ LHsTkRParen  }
 
 %right 'in'
 
@@ -59,29 +59,29 @@ import LH.Text.Token
 -- Declarations
 
 -- A sequence of constructor declarations (separated by pipes).
-Cons :: { Seq (Id, Seq LHsType) }
+Cons :: { Seq (L (Id, Seq (L LHsType))) }
     : {- ε -}         { Seq.empty }
     | Con             { Seq.singleton $1 }
     | Cons '|' Con    { $1 |> $3 }
 
 -- A constructor declaration.
-Con :: { (Id, Seq LHsType) }
-    : con             { ($1, Seq.empty) }
-    | Con TyAtom      { let (c, xs) = $1 in (c, xs |> $2) }
+Con :: { L (Id, Seq (L LHsType)) }
+    : con             { L (toSpan $1) (ident $1, Seq.empty) }
+    | Con TyAtom      { L ($1 >< $2) (let (c, xs) = un $1 in (c, xs |> $2)) }
 
 -- A single declaration.
-Decl :: { LHsDecl }
-    : 'data' con TyVars '=' Cons { LHsData $2 $3 $5 }
-    | 'type' con TyVars '=' Type { LHsType $2 $3 $5 }
+Decl :: { L LHsDecl }
+    : 'data' con TyVars '=' Cons { L ($1 >< $4 ><* $5) (LHsData (ident $2) $3 (fmap un $5)) }
+    | 'type' con TyVars '=' Type { L ($1 >< $5) (LHsType (ident $2) $3 $5) }
 
 -------------------------------------------------------------------------------
 -- Patterns
 
-Pat :: { LHsPat }
-    : con PatApp   { LHsPCon $1 $2 }
+Pat :: { L LHsPat }
+    : con PatApp   { L ($1 >< $2) (LHsPCon (ident $1) (un $2)) }
 
-PatAtom :: { LHsPat }
-    : con          { LHsPCon $1 Seq.empty }
+PatAtom :: { L LHsPat }
+    : con          { L (toSpan $1) (LHsPCon (ident $1) Seq.empty) }
 
 -------------------------------------------------------------------------------
 -- Types
@@ -90,5 +90,5 @@ PatAtom :: { LHsPat }
 TyVars :: { Seq Id }
     : {- ε -}      { Seq.empty }
 
-TyAtom :: { LHsType }
-    : con          { LHsTyCon $1 Seq.empty }
+TyAtom :: { L LHsType }
+    : con          { L (toSpan $1) (LHsTyCon (ident $1) Seq.empty) }

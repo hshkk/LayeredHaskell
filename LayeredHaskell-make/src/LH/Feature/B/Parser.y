@@ -22,6 +22,7 @@ import Data.Sequence (Seq)
 
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
+import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -37,23 +38,23 @@ import LH.Text.Token
 %expect 0
 
 %token
-    int     { LHsLexeme _ (LHsTkInt $$)      }
-    '+'     { LHsLexeme _ LHsTkPlus          }
-    '-'     { LHsLexeme _ LHsTkMinus         }
-    '*'     { LHsLexeme _ LHsTkTimes         }
-    '||'    { LHsLexeme _ LHsTkOr            }
-    '&&'    { LHsLexeme _ LHsTkAnd           }
-    '<'     { LHsLexeme _ LHsTkLt            }
-    '>'     { LHsLexeme _ LHsTkGt            }
-    '<='    { LHsLexeme _ LHsTkLte           }
-    '>='    { LHsLexeme _ LHsTkGte           }
-    '=='    { LHsLexeme _ LHsTkEqEq          }
-    '/='    { LHsLexeme _ LHsTkNotEq         }
-    'if'    { LHsLexeme _ LHsTkIf            }
-    'then'  { LHsLexeme _ LHsTkThen          }
-    'else'  { LHsLexeme _ LHsTkElse          }
-    '('     { LHsLexeme _ LHsTkLParen        }
-    ')'     { LHsLexeme _ LHsTkRParen        }
+    int     { LHsLexeme _ (LHsTkInt _) }
+    '+'     { LHsLexeme _ LHsTkPlus    }
+    '-'     { LHsLexeme _ LHsTkMinus   }
+    '*'     { LHsLexeme _ LHsTkTimes   }
+    '||'    { LHsLexeme _ LHsTkOr      }
+    '&&'    { LHsLexeme _ LHsTkAnd     }
+    '<'     { LHsLexeme _ LHsTkLt      }
+    '>'     { LHsLexeme _ LHsTkGt      }
+    '<='    { LHsLexeme _ LHsTkLte     }
+    '>='    { LHsLexeme _ LHsTkGte     }
+    '=='    { LHsLexeme _ LHsTkEqEq    }
+    '/='    { LHsLexeme _ LHsTkNotEq   }
+    'if'    { LHsLexeme _ LHsTkIf      }
+    'then'  { LHsLexeme _ LHsTkThen    }
+    'else'  { LHsLexeme _ LHsTkElse    }
+    '('     { LHsLexeme _ LHsTkLParen  }
+    ')'     { LHsLexeme _ LHsTkRParen  }
 
 %right    'else'
 %left     '||'
@@ -73,25 +74,25 @@ import LH.Text.Token
 -------------------------------------------------------------------------------
 -- Expressions
 
-Expr :: { LHsExpr }
+Expr :: { L LHsExpr }
     : 'if' Expr 'then' Expr 'else' Expr 
-                            { LHsIf $2 $4 $6 }
-    | Expr '+' Expr         { LHsBin LHsAdd $1 $3 }
-    | Expr '-' Expr         { LHsBin LHsSub $1 $3 }
-    | Expr '*' Expr         { LHsBin LHsMul $1 $3 }
-    | Expr '||' Expr        { LHsBin LHsOr  $1 $3 }
-    | Expr '&&' Expr        { LHsBin LHsAnd $1 $3 }
-    | Expr '<' Expr         { LHsBin LHsLt  $1 $3 }
-    | Expr '>' Expr         { LHsBin LHsGt  $1 $3 }
-    | Expr '<=' Expr        { LHsBin LHsLte $1 $3 }
-    | Expr '>=' Expr        { LHsBin LHsGte $1 $3 }
-    | Expr '==' Expr        { LHsBin LHsEq  $1 $3 }
-    | Expr '/=' Expr        { LHsBin LHsNeq $1 $3 }
-    | '-' Expr %prec NEG    { LHsNeg $2 }
+                            { L ($1 >< $6) (LHsIf $2 $4 $6)      }
+    | Expr '+' Expr         { L ($1 >< $3) (LHsBin LHsAdd $1 $3) }
+    | Expr '-' Expr         { L ($1 >< $3) (LHsBin LHsSub $1 $3) }
+    | Expr '*' Expr         { L ($1 >< $3) (LHsBin LHsMul $1 $3) }
+    | Expr '||' Expr        { L ($1 >< $3) (LHsBin LHsOr  $1 $3) }
+    | Expr '&&' Expr        { L ($1 >< $3) (LHsBin LHsAnd $1 $3) }
+    | Expr '<' Expr         { L ($1 >< $3) (LHsBin LHsLt  $1 $3) }
+    | Expr '>' Expr         { L ($1 >< $3) (LHsBin LHsGt  $1 $3) }
+    | Expr '<=' Expr        { L ($1 >< $3) (LHsBin LHsLte $1 $3) }
+    | Expr '>=' Expr        { L ($1 >< $3) (LHsBin LHsGte $1 $3) }
+    | Expr '==' Expr        { L ($1 >< $3) (LHsBin LHsEq  $1 $3) }
+    | Expr '/=' Expr        { L ($1 >< $3) (LHsBin LHsNeq $1 $3) }
+    | '-' Expr %prec NEG    { L ($1 >< $2) (LHsNeg $2)           }
 
-Atom :: { LHsExpr }
-    : int         { LHsInt $1 }
-    | '(' Bin ')' { LHsPre $2 }
+Atom :: { L LHsExpr }
+    : int         { int $1 }
+    | '(' Bin ')' { L ($1 >< $3) (LHsPre $2) }
 
 Bin :: { LHsBin }
     : '+'         { LHsAdd }
@@ -109,18 +110,32 @@ Bin :: { LHsBin }
 -------------------------------------------------------------------------------
 -- Patterns
 
-PatAtom :: { LHsPat }
-    : int         { LHsPInt $1 }
+PatAtom :: { L LHsPat }
+    : int         { pint $1 }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
     -- This shouldn't cause any issues, since B only defines True and False as valid pattern constructors.
-    | con         { LHsPCon $1 Seq.empty }
+    | con         { L (toSpan $1) (LHsPCon (ident $1) Seq.empty) }
 
 -------------------------------------------------------------------------------
 -- Types
 
-TyAtom :: { LHsType }
+TyAtom :: { L LHsType }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
     -- This shouldn't cause any issues, since B only defines Int and Bool as valid type constructors.
-    : con         { LHsTyCon $1 Seq.empty }
+    : con         { L (toSpan $1) (LHsTyCon (ident $1) Seq.empty) }
+
+{
+-- | Parses an integer.
+int :: LHsLexeme -> L LHsExpr
+int (LHsLexeme sp (LHsTkInt n)) = L sp (LHsInt n)
+-- The below case will never happen.
+int _ = undefined
+
+-- | Parses an integer as a pattern.
+pint :: LHsLexeme -> L LHsPat
+pint (LHsLexeme sp (LHsTkInt n)) = L sp (LHsPInt n)
+-- The below case will never happen.
+pint _ = undefined
+}

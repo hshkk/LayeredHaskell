@@ -22,13 +22,15 @@ module LH.Feature.AbsSyn (
     LHsPat (..)
     ) where
 
+import LH.Text.Located (L)
+
 -- | An expression.
 data LHsExpr
-    = LHsInt  Int                     -- ^ An integer.
-    | LHsBin  LHsBin LHsExpr LHsExpr  -- ^ A binary operation.
-    | LHsPre  LHsBin                  -- ^ A binary operator written in prefix form.
-    | LHsNeg  LHsExpr                 -- ^ Negation.
-    | LHsIf   LHsExpr LHsExpr LHsExpr -- ^ An @if@ expression.
+    = LHsInt  Int                                 -- ^ An integer.
+    | LHsBin  LHsBin (L LHsExpr) (L LHsExpr)      -- ^ A binary operation.
+    | LHsPre  LHsBin                              -- ^ A binary operator written in prefix form.
+    | LHsNeg  (L LHsExpr)                         -- ^ Negation.
+    | LHsIf   (L LHsExpr) (L LHsExpr) (L LHsExpr) -- ^ An @if@ expression.
     -- Note that we do not need a dedicated Boolean representation, since LHsCon provides this already.
     deriving (Eq, Show)
 
@@ -53,16 +55,16 @@ data LHsBin
 
 -- | A value.
 data LHsVal
-    = LHsVInt Int                  -- ^ An integer.
+    = LHsVInt Int                      -- ^ An integer.
     deriving (Eq, Show)
 
 -- | A type.
 data LHsType
-    = LHsTyCon Id (Seq LHsType)    -- ^ A type constructor.
+    = LHsTyCon Id (Seq (L LHsType))    -- ^ A type constructor.
     deriving (Eq, Show)
 
--- | A pattern.
+{-# WARNING LHsType "B has no accessible patterns. The following is only used when F is enabled." #-}
 data LHsPat
-    = LHsPInt Int                  -- ^ A literal integer pattern.
-    | LHsPCon Id (Seq LHsPat)      -- ^ A pattern constructor.
+    = LHsPInt Int                      -- ^ A literal integer pattern.
+    | LHsPCon Id (Seq (L LHsPat))      -- ^ A pattern constructor.
     deriving (Eq, Show)

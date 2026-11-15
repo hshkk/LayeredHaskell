@@ -74,6 +74,7 @@ library
         LH.Feature.AbsSyn
         LH.Feature.Parser
         LH.Text.Lexer
+        LH.Text.Located
         LH.Text.Token
         LH.Text.Parser.Monad
 

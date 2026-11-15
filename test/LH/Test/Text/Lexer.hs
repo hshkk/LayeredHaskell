@@ -24,7 +24,7 @@ tokens = fmap (map (\(LHsLexeme _ tok) -> tok)) . scanTokens
 
 -- Tokenizes the entirety of the input, producing a (potential) list of positions (not lexemes).
 positions :: Text -> Either LHsError [(Int, Int)]
-positions = fmap (map (\(LHsLexeme (LHsPos l c) _) -> (l, c))) . scanTokens
+positions = fmap (map (\(LHsLexeme (LHsSpan (LHsPos l c) _) _) -> (l, c))) . scanTokens
 
 -- Does the source produce an expected list of tokens?
 lexesTo :: HasCallStack => Text -> [LHsToken] -> Spec
@@ -50,7 +50,8 @@ unclosed src (l, c) = src `failsWith` UnclosedComment (LHsPos l c)
 eofAt :: HasCallStack => Text -> Int -> (Int, Int) -> Spec
 eofAt src n (l, c) =
     it (show src ++ ", token " ++ show n) $
-        runLHsParser (scan n) src `shouldBe` Right (LHsLexeme (LHsPos l c) LHsTkEOF)
+        fmap (\(LHsLexeme (LHsSpan pos _) tok) -> (pos, tok)) (runLHsParser (scan n) src)
+            `shouldBe` Right (LHsPos l c, LHsTkEOF)
     where
         scan :: Int -> LHsParser LHsLexeme
         scan 1 = scanToken

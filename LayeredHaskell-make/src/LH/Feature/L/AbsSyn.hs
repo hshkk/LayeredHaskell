@@ -22,11 +22,13 @@ module LH.Feature.AbsSyn (
     LHsType (..)
     ) where
 
-import Data.Sequence (Seq)
+import Data.Sequence   (Seq)
+
+import LH.Text.Located (L)
 
 data LHsExpr
-    = LHsList (Seq LHsExpr)          -- ^ A list expression.
-    | LHsTuple (Seq LHsExpr)         -- ^ A tuple expression.
+    = LHsList (Seq (L LHsExpr))     -- ^ A list expression.
+    | LHsTuple (Seq (L LHsExpr))    -- ^ A tuple expression.
     deriving (Eq, Show)
 
 -- | A binary operator. 
@@ -39,13 +41,13 @@ data LHsBin
     deriving (Eq, Show)
 
 data LHsPat
-    = LHsPList (Seq LHsPat)          -- ^ A list pattern.
-    | LHsPTuple (Seq LHsPat)         -- ^ A tuple pattern.
-    | LHsPListCons LHsPat LHsPat     -- ^ The cons pattern on lists.
+    = LHsPList (Seq (L LHsPat))          -- ^ A list pattern.
+    | LHsPTuple (Seq (L LHsPat))         -- ^ A tuple pattern.
+    | LHsPListCons (L LHsPat) (L LHsPat) -- ^ The cons pattern on lists.
     deriving (Eq, Show)
 
 data LHsType
-    = LHsTyList LHsType              -- ^ The list type.
-    | LHsTyTuple (Seq LHsType)       -- ^ A tuple type.
+    = LHsTyList (L LHsType)              -- ^ The list type.
+    | LHsTyTuple (Seq (L LHsType))       -- ^ A tuple type.
     deriving (Eq, Show)
 

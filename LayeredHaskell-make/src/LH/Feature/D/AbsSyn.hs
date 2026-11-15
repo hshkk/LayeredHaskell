@@ -18,30 +18,32 @@ module LH.Feature.AbsSyn (
     LHsType (..),
     ) where
 
-import Data.Sequence (Seq)
+import Data.Sequence   (Seq)
+
+import LH.Text.Located (L)
 
 -- | A declaration.
 data LHsDecl
-    = LHsData Id (Seq Id) (Seq (Id, Seq LHsType))  
-                                     -- ^ A datatype declaration.
-                                     --   
-                                     --   Type variables are not present in @D@,
-                                     --   but we include it as the second argument to 
-                                     --   avoid rewriting it again for @P@.
-                                     --   In @D@, the sequence will /always/ be empty, 
-                                     --   a property guaranteed by the parser.
-    | LHsType Id (Seq Id) LHsType    -- ^ A type synonym.
+    = LHsData Id (Seq Id) (Seq (Id, Seq (L LHsType)))  
+                                      -- ^ A datatype declaration.
+                                      --   
+                                      --   Type variables are not present in @D@,
+                                      --   but we include it as the second argument to 
+                                      --   avoid rewriting it again for @P@.
+                                      --   In @D@, the sequence will /always/ be empty, 
+                                      --   a property guaranteed by the parser.
+    | LHsType Id (Seq Id) (L LHsType) -- ^ A type synonym.
     deriving (Eq, Show)
 
 {-# WARNING LHsType "D has no accessible patterns. The following is only used when F is enabled." #-}
 data LHsPat
-    = LHsPCon Id (Seq LHsPat)      -- ^ A pattern constructor.
-                                   --   The parser for D explicitly does not parse this,
-                                   --   but it must be included since D need not be enabled alongside F,
-                                   --   which does provide patterns in equations (or case expressions).
+    = LHsPCon Id (Seq (L LHsPat))   -- ^ A pattern constructor.
+                                    --   The parser for D explicitly does not parse this,
+                                    --   but it must be included since D need not be enabled alongside F,
+                                    --   which does provide patterns in equations (or case expressions).
     deriving (Eq, Show)
 
 -- | A type.
 data LHsType
-    = LHsTyCon Id (Seq LHsType)    -- ^ A type constructor.
+    = LHsTyCon Id (Seq (L LHsType)) -- ^ A type constructor.
     deriving (Eq, Show)

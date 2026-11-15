@@ -26,6 +26,7 @@ import qualified Data.Sequence as Seq
 
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
+import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -41,17 +42,17 @@ import LH.Text.Token
 %expect 0
 
 %token
-    var   { LHsLexeme _ (LHsTkVar $$) }
-    con   { LHsLexeme _ (LHsTkCon $$) }
-    'let' { LHsLexeme _ LHsTkLet }
-    'in'  { LHsLexeme _ LHsTkIn }
-    '='   { LHsLexeme _ LHsTkEq }
+    var   { LHsLexeme _ (LHsTkVar _)    }
+    con   { LHsLexeme _ (LHsTkCon _)    }
+    'let' { LHsLexeme _ LHsTkLet        }
+    'in'  { LHsLexeme _ LHsTkIn         }
+    '='   { LHsLexeme _ LHsTkEq         }
     '::'  { LHsLexeme _ LHsTkColonColon }
-    '('   { LHsLexeme _ LHsTkLParen }
-    ')'   { LHsLexeme _ LHsTkRParen }
-    OPEN  { LHsLexeme _ LHsTkVOpen }
-    SEMI  { LHsLexeme _ LHsTkVSemi }
-    CLOSE { LHsLexeme _ LHsTkVClose }
+    '('   { LHsLexeme _ LHsTkLParen     }
+    ')'   { LHsLexeme _ LHsTkRParen     }
+    OPEN  { LHsLexeme _ LHsTkVOpen      }
+    SEMI  { LHsLexeme _ LHsTkVSemi      }
+    CLOSE { LHsLexeme _ LHsTkVClose     }
 
 %right 'in'
 
@@ -61,7 +62,7 @@ import LH.Text.Token
 -- Rules
 
 -- A block of declarations, which also serves as a program.
-Block :: { Seq LHsDecl }
+Block :: { Seq (L LHsDecl) }
     : OPEN Decls End { $2 }
 
 -- The end of a block.
@@ -74,63 +75,63 @@ End :: { () }
 -- Declarations
 
 -- A sequence of declarations (separated by virtual semicolons).
-Decls :: { Seq LHsDecl }
+Decls :: { Seq (L LHsDecl) }
     : {- ε -}         { Seq.empty }
     | Decl            { Seq.singleton $1 }
     | Decls SEMI      { $1 }
     | Decls SEMI Decl { $1 |> $3 }
 
 -- A single declaration.
-Decl :: { LHsDecl }
-    : var Pats '=' Expr { LHsEqn $1 $2 $4 }
-    | var '::' Type     { LHsSig $1 $3 }
+Decl :: { L LHsDecl }
+    : var Pats '=' Expr { L ($1><$4) (LHsEqn (ident $1) $2 $4) }
+    | var '::' Type     { L ($1><$3) (LHsSig (ident $1) $3) }
 
 -------------------------------------------------------------------------------
 -- Expressions
 
-Expr :: { LHsExpr }
-    : 'let' Block 'in' Expr { LHsLet $2 $4 }
+Expr :: { L LHsExpr }
+    : 'let' Block 'in' Expr { L ($1><$4) (LHsLet $2 $4) }
     | App                   { $1 }
 
-App :: { LHsExpr }
-    : App Atom              { LHsApp $1 $2 }
+App :: { L LHsExpr }
+    : App Atom              { L ($1><$2) (LHsApp $1 $2) }
     | Atom                  { $1 }
 
-Atom :: { LHsExpr }
-    : var                   { LHsVar $1 }
-    | con                   { LHsCon $1 }
-    | '(' Expr ')'          { $2 }
+Atom :: { L LHsExpr }
+    : var                   { L (toSpan $1) (LHsVar (ident $1)) }
+    | con                   { L (toSpan $1) (LHsCon (ident $1)) }
+    | '(' Expr ')'          { L ($1><$3) (un $2) }
 
 -------------------------------------------------------------------------------
 -- Patterns
 
 -- A sequence of patterns (separated by juxtaposition).
 -- E contains no patterns, so this rule is empty.
-Pats :: { Seq LHsPat }
+Pats :: { Seq (L LHsPat) }
     : {- ε -}               { Seq.empty }
 
-Pat :: { LHsPat }
+Pat :: { L LHsPat }
     : PatAtom               { $1 }
 
-PatApp :: { Seq LHsPat }
-    : PatAtom Pats          { $1 <| $2 }
+PatApp :: { L (Seq (L LHsPat)) }
+    : PatAtom Pats          { L ($1 ><* $2) ($1 <| $2) }
 
-PatAtom :: { LHsPat }
-    : '(' Pat ')'           { $2 }
+PatAtom :: { L LHsPat }
+    : '(' Pat ')'           { L ($1 >< $3) (un $2) }
 
 -------------------------------------------------------------------------------
 -- Types
 --
 -- The following rules are intentionally non-terminating, since E has no meaningful types.
 
-Type :: { LHsType }
+Type :: { L LHsType }
     : TyApp                 { $1 }
 
-TyApp :: { LHsType }
+TyApp :: { L LHsType }
     : TyAtom                { $1 }
 
-TyAtom :: { LHsType }
-    : '(' Type ')'          { $2 }
+TyAtom :: { L LHsType }
+    : '(' Type ')'          { L ($1 >< $3) (un $2) }
 
 {
 -- | Gives the parser the next token. 
@@ -138,12 +139,19 @@ lexer :: (LHsLexeme -> LHsParser a) -> LHsParser a
 lexer f = scanToken >>= f
 
 -- | Parses a program, producing a sequence of declarations ('LHsDecl').
-parseProgram :: Text -> Either LHsError (Seq LHsDecl)
+parseProgram :: Text -> Either LHsError (Seq (L LHsDecl))
 parseProgram = runLHsParser (beginProgram >> program)
 
 -- | Reports a token that the parser did not expect.
 parseError :: LHsLexeme -> LHsParser a
-parseError (LHsLexeme start tok) = do
+parseError (LHsLexeme sp tok) = do
     end <- fmap aiPos getInput
-    throwError (ParseError start end tok)
+    throwError (ParseError sp tok)
+
+-- | Parses an identifier.
+ident :: LHsLexeme -> Id
+ident (LHsLexeme sp (LHsTkVar x)) = L sp x
+ident (LHsLexeme sp (LHsTkCon c)) = L sp c
+-- The below case will never happen.
+ident _ = undefined
 }

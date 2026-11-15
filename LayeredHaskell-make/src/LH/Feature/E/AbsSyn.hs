@@ -30,36 +30,38 @@ import Data.Map      (Map)
 import Data.Sequence (Seq)
 import Data.Text     (Text)
 
+import LH.Text.Located (L)
+
 -- | An identifier.
-type Id = Text
+type Id = L Text
 
 -- | A declaration.
 data LHsDecl
-    = LHsEqn  Id (Seq LHsPat) LHsExpr -- ^ An equation.
-    | LHsSig  Id LHsType              -- ^ A type signature.
+    = LHsEqn  Id (Seq (L LHsPat)) (L LHsExpr) -- ^ An equation.
+    | LHsSig  Id (L LHsType)                  -- ^ A type signature.
     deriving (Eq, Show)
 
 -- | An expression.
 data LHsExpr
-    = LHsVar Id                    -- ^ A variable.
-    | LHsCon Id                    -- ^ A constructor.
-    | LHsApp LHsExpr LHsExpr       -- ^ An application.
-    | LHsLet (Seq LHsDecl) LHsExpr -- ^ A @let@ expression.
+    = LHsVar Id                               -- ^ A variable.
+    | LHsCon Id                               -- ^ A constructor.
+    | LHsApp (L LHsExpr) (L LHsExpr)          -- ^ An application.
+    | LHsLet (Seq (L LHsDecl)) (L LHsExpr)    -- ^ A @let@ expression.
     deriving (Eq, Show)
 
 -- | A value.
 data LHsVal
-    = LHsVCon Id (Seq LHsVal)      -- ^ A constructor.
-    | LHsClos LHsEnv LHsExpr       -- ^ A closure (a pair of an environment and an expression), implementing lexical scoping.
+    = LHsVCon Id (Seq LHsVal)                 -- ^ A constructor.
+    | LHsClos LHsEnv (L LHsExpr)              -- ^ A closure (a pair of an environment and an expression), implementing lexical scoping.
     deriving (Eq, Show)
 
 {-# WARNING LHsType "E has no accessible patterns. The following is only used when F is enabled." #-}
 -- | A pattern.
 data LHsPat
-    = LHsPVar Id                   -- ^ A pattern variable.
-                                   --   The parser for E explicitly does not parse this,
-                                   --   but it must be included since B and D need not be enabled alongside F,
-                                   --   which does provide patterns in equations.
+    = LHsPVar Id                              -- ^ A pattern variable.
+                                              --   The parser for E explicitly does not parse this,
+                                              --   but it must be included since B and D need not be enabled alongside F,
+                                              --   which does provide patterns in equations.
     deriving (Eq, Show)
 
 -- {-# WARNING LHsType "E has no types. It must be accompanied by B or D." #-}

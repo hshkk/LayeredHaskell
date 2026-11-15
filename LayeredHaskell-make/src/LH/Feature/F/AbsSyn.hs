@@ -22,28 +22,30 @@ module LH.Feature.AbsSyn (
     LHsType (..),
     ) where
 
-import Data.Sequence (Seq)
+import Data.Sequence   (Seq)
+
+import LH.Text.Located (L)
 
 -- | An expression.
 data LHsExpr
-    = LHsLam (Seq LHsPat) LHsExpr     -- ^ A lambda abstraction.
-    | LHsBin  LHsBin LHsExpr LHsExpr  -- ^ A binary operation.
-    | LHsPre  LHsBin                  -- ^ A binary operator written in prefix form.
+    = LHsLam (Seq (L LHsPat)) (L LHsExpr)     -- ^ A lambda abstraction.
+    | LHsBin  LHsBin (L LHsExpr) (L LHsExpr)  -- ^ A binary operation.
+    | LHsPre  LHsBin                          -- ^ A binary operator written in prefix form.
     deriving (Eq, Show)
 
 -- | A binary operator.
 data LHsBin
-    = LHsFunApp                     -- ^ Function application.
-    | LHsFunComp                    -- ^ Function composition.
+    = LHsFunApp                       -- ^ Function application.
+    | LHsFunComp                      -- ^ Function composition.
     deriving (Eq, Show)
 
 -- | A pattern.
 data LHsPat
-    = LHsPVar Id                    -- ^ A pattern variable.
-    | LHsPWild                      -- ^ The wildcard pattern.
+    = LHsPVar Id                      -- ^ A pattern variable.
+    | LHsPWild                        -- ^ The wildcard pattern.
     deriving (Eq, Show)
 
 -- | A type.
 data LHsType
-    = LHsTyFn LHsType LHsType       -- ^ A function type.
+    = LHsTyFn (L LHsType) (L LHsType) -- ^ A function type.
     deriving (Eq, Show)
