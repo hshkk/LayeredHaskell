@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Data.Error
+Module      : LHMake.Data.Error
 Description : Errors emitted by @LayeredHaskell-make@.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -11,7 +11,7 @@ Stability   : experimental
 
 This module provides a datatype representation for errors emitted by @LayeredHaskell-make@.
 -}
-module LH.Data.Error (
+module LHMake.Data.Error (
     -- * Errors
     LHsMakeError
     ) where

@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Text.Label
+Module      : LHMake.Text.Label
 Description : Labeling terminal output.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -11,7 +11,7 @@ Stability   : experimental
 
 This module provides definitions for prepending labels to strings.
 -}
-module LH.Text.Label (
+module LHMake.Text.Label (
     -- * Labeling
     infoLabel, hintLabel,
     -- ** Warnings and errors

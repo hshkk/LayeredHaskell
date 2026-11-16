@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Control.Superimposition
+Module      : LHMake.Control.Superimposition
 Description : Superimposition of Haskell and Happy ASTs.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -40,7 +40,7 @@ The following example illustrates its use on two Haskell files.
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-module LH.Control.Superimposition (
+module LHMake.Control.Superimposition (
     -- * Superimposition
     Superimposable (..), Identifiable (..),
     -- ** Identifiers
@@ -65,7 +65,7 @@ import qualified Language.Haskell.Parser      as H
 import qualified Language.Haskell.Pretty      as H
 import qualified Language.Haskell.Syntax      as H
 
-import LH.Data.Error (LHsMakeError)
+import LHMake.Data.Error (LHsMakeError)
 
 infixl 6 -->
 

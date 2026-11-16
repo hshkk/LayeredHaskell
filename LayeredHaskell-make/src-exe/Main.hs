@@ -4,21 +4,21 @@ import Data.Version       (showVersion)
 import System.Environment (getArgs)
 import System.FilePath    ((</>))
 
-import qualified Paths_LayeredHaskell_make as LH (version)
+import qualified Paths_LayeredHaskell_make as LHMake (version)
 
-import LH.Data.Feature 
+import LHMake.Data.Feature 
     (superimpose, 
      list, listAll, listDeps, 
      generate)
-import LH.Text.Label      (infoLabel, hintLabel, warnLabel, errLabel)
+import LHMake.Text.Label  (infoLabel, hintLabel, warnLabel, errLabel)
 
 -- | The file containing the features that @LayeredHaskell-make@ will collate and generate source files for.
 features :: FilePath
-features = "LayeredHaskell-make" </> "src" </> "LH" </> "Feature" </> "Features"
+features = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> "Features"
 
 -- | The destination directory for generated source files.
 dir :: FilePath
-dir = "src" </> "LH" </> "Feature"
+dir = "src" </> "LHMake" </> "Feature"
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
@@ -80,4 +80,4 @@ help = do
 -- | Prints the version of @LayeredHaskell-make@.
 version :: IO ()
 version = do
-    putStrLn $ "LayeredHaskell-make version " ++ showVersion LH.version
+    putStrLn $ "LayeredHaskell-make version " ++ showVersion LHMake.version

@@ -20,11 +20,11 @@ import LH.Text.Token
 -- Helper functions for writing general tests idiomatically
 
 -- Tokenizes the entirety of the input, producing a (potential) list of tokens (not lexemes).
-tokens :: Text -> Either LHsError [LHsToken]
+tokens :: Text -> Either LHsTextError [LHsToken]
 tokens = fmap (map (\(LHsLexeme _ tok) -> tok)) . scanTokens
 
 -- Tokenizes the entirety of the input, producing a (potential) list of positions (not lexemes).
-positions :: Text -> Either LHsError [(Int, Int)]
+positions :: Text -> Either LHsTextError [(Int, Int)]
 positions = fmap (map (\(LHsLexeme (LHsSpan (LHsPos l c) _) _) -> (l, c))) . scanTokens
 
 -- Does the source produce an expected list of tokens?
@@ -36,7 +36,7 @@ hasPositions :: HasCallStack => Text -> [(Int, Int)] -> Spec
 hasPositions src expected = it (show src) $ positions src `shouldBe` Right expected
 
 -- Does the source produce an expected error?
-failsWith :: HasCallStack => Text -> LHsError -> Spec
+failsWith :: HasCallStack => Text -> LHsTextError -> Spec
 failsWith src err = it (show src) $ tokens src `shouldBe` Left err
 
 -- Does the source produce a lexical error?
@@ -62,7 +62,7 @@ eofAt src n (l, c) =
 -- Helper functions for writing layout tests idiomatically
 
 -- Tokenizes the entirety of the input as a program, producing a (potential) list of tokens (not lexemes).
-tokensAsProgram :: Text -> Either LHsError [LHsToken]
+tokensAsProgram :: Text -> Either LHsTextError [LHsToken]
 tokensAsProgram = fmap (map (\(LHsLexeme _ tok) -> tok)) . scanTokensAsProgram
  
 -- Pretty-prints tokens including layout.

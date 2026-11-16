@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Data.Feature
+Module      : LHMake.Data.Feature
 Description : Language features and dependencies between them.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -13,7 +13,7 @@ This module provides definitions for language features and operations on them,
 such as superimposition and combination generation.
 It also provides a number of definitions supporting the specification of dependencies between features.
 -}
-module LH.Data.Feature (
+module LHMake.Data.Feature (
     -- * Features
     FeatureName, ModuleName, Feature (..), feature,
     -- ** Registries
@@ -53,10 +53,10 @@ import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
-import LH.Control.Superimposition ((-->))
-import LH.Data.Error              (LHsMakeError)
-import LH.Text.Happy.Pretty       (pprHappy)
-import LH.Text.Label              (infoLabel, errLabel)
+import LHMake.Control.Superimposition ((-->))
+import LHMake.Data.Error              (LHsMakeError)
+import LHMake.Text.Happy.Pretty       (pprHappy)
+import LHMake.Text.Label              (infoLabel, errLabel)
 
 -------------------------------------------------------------------------------
 -- Features
@@ -110,7 +110,7 @@ feature
     -> Feature
 feature desc modls gram depends implied hide =
     Feature desc (map qualify modls) (fmap qualify gram) (cnf depends) (dnf implied) hide
-    where qualify file = "LayeredHaskell-make" </> "src" </> "LH" </> "Feature" </> file
+    where qualify file = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> file
 
 -------------------------------------------------------------------------------
 -- Registries

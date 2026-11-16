@@ -1,5 +1,5 @@
 {- |
-Module      : LH.Text.Happy.Pretty
+Module      : LHMake.Text.Happy.Pretty
 Description : A pretty-printer for Happy ASTs.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
@@ -11,7 +11,7 @@ Stability   : experimental
 
 This module provides a basic pretty-printer for Happy abstract syntax trees that includes embedded Haskell.
 -}
-module LH.Text.Happy.Pretty (
+module LHMake.Text.Happy.Pretty (
     -- * Pretty-printer
     pprHappy
     ) where
