@@ -9,8 +9,8 @@ import System.Exit        (die)
 
 import qualified Data.Text.IO as Text
 
-import LH.Feature.Parser    (parseProgram)
-import LH.Text.Parser.Monad (renderError)
+import LH.Data.Error      (renderError)
+import LH.Feature.Parser  (parseProgram)
 
 -- | Takes a single filepath, parses it, and prints out the AST.
 main :: IO ()

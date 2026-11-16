@@ -71,6 +71,7 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        LH.Data.Error
         LH.Data.SrcLoc
         LH.Feature.AbsSyn
         LH.Feature.Parser

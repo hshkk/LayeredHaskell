@@ -72,11 +72,11 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
-        LH.Control.Superimposition
-        LH.Data.Feature
-        LH.Data.Error
-        LH.Text.Label
-        LH.Text.Happy.Pretty
+        LHMake.Control.Superimposition
+        LHMake.Data.Feature
+        LHMake.Data.Error
+        LHMake.Text.Label
+        LHMake.Text.Happy.Pretty
 
     -- Modules included in this library but not exported..
     -- other-modules:
