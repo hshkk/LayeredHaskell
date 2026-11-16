@@ -300,8 +300,10 @@ merge reg names = case resolve reg names of
             (,) <$> mergeAll modls <*> mergeAll grams
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
---   The directory should written in the format, say, @src\/LH\/Feature@, 
+--   The directory should written in the format of, say, @src\/LH\/Feature@, 
 --   since 'superimpose' simply appends it to the front of the filepath using '(</>)'. 
+--
+--   Note that 'superimpose' will write to a file /only/ if its contents have changed.
 superimpose :: [FeatureName] -> FilePath -> IO ()
 superimpose names dir = do
     putStrLn $ infoLabel "LayeredHaskell-make is starting up..."
@@ -375,6 +377,8 @@ listDeps = printFeatures "Listing all dependencies and joint implications..." re
 -- Listing feature combinations
 
 -- | Generates a list of all feature combinations.
+--
+--   The Boolean paired with a 'FeatureName' is 'True' when the feature must be enabled manually.
 combos :: LHsMakeError [[(FeatureName, Bool)]]
 combos = do
     mapM_ Left (unknown registry (foldMap (Set.unions . dependsOn) registry))
@@ -406,6 +410,8 @@ generate = do
         paint (name, manual) = if manual then colored name else name
 
 -- | Produces the feature combinations colored by 'generate'.
+--
+--   One can interpret 'generateCombos' as a filtering of 'combos' lifted into the 'IO' monad.
 generateCombos :: IO [[FeatureName]]
 generateCombos =
     either (die . errLabel)
