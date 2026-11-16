@@ -144,6 +144,8 @@ flattenDecls (H.HsTypeSig loc names ty)         = [H.HsTypeSig loc [name] ty | n
 flattenDecls (H.HsInfixDecl loc assoc prec ops) = [H.HsInfixDecl loc assoc prec [op] | op <- ops]
 flattenDecls (H.HsPatBind loc (H.HsPVar name) rhs wheres)
     = [H.HsFunBind [H.HsMatch loc name [] rhs wheres]]
+flattenDecls (H.HsInstDecl loc ctx cls tys decls)
+    = [H.HsInstDecl loc ctx cls tys (concatMap flattenDecls decls)]
 flattenDecls decl = [decl]
 
 -- | To superimpose two Haskell modules, they must have the same name.
@@ -163,7 +165,7 @@ instance Superimposable H.HsModule where
 instance Superimposable H.HsExportSpec where
     x@(H.HsEThingAll _) --> _                      = Right x
     _ --> y@(H.HsEThingAll _)                      = Right y
-    H.HsEThingWith name xs --> H.HsEThingWith _ ys = H.HsEThingWith name <$> (xs --> ys)
+    H.HsEThingWith name xs --> H.HsEThingWith _ ys = fmap (H.HsEThingWith name) (xs --> ys)
     H.HsEAbs _ --> y@(H.HsEThingWith _ _)          = Right y
     x --> _                                        = Right x
 
@@ -223,13 +225,15 @@ instance Identifiable H.HsImportSpec where
 
 -- | Identifiers for Haskell declarations.
 --
---   Only these declarations can be merged. Everything else (classes, instances, default
+--   Only these declarations can be merged. Everything else (classes, default
 --   declarations, foreign declarations, pattern bindings) is rejected by 'identify'.
 data DeclId
-    = Value  H.HsName  -- ^ Functions and variables.
-    | Sig    H.HsName  -- ^ Type signatures.
-    | Type   H.HsName  -- ^ Type synonyms, datatype declarations, and @newtype@s.
-    | Fixity H.HsName  -- ^ Fixity declarations.
+    = Value    H.HsName  -- ^ Functions and variables.
+    | Sig      H.HsName  -- ^ Type signatures.
+    | Type     H.HsName  -- ^ Type synonyms, datatype declarations, and @newtype@s.
+    | Fixity   H.HsName  -- ^ Fixity declarations.
+    | Instance H.HsQName [H.HsType]
+                         -- ^ Typeclass instance declarations.
     deriving Eq
 
 -- | Only a subset of Haskell declarations have been given superimposition definitions.
@@ -241,6 +245,7 @@ data DeclId
 --       * Function bindings
 --       * Type signatures
 --       * Fixity declarations
+--       * Typeclass instance declarations.
 --
 --   See 'DeclId'.
 instance Identifiable H.HsDecl where
@@ -252,10 +257,11 @@ instance Identifiable H.HsDecl where
     identify (H.HsTypeSig _ [name] _)                   = Right (Sig name)
     identify (H.HsInfixDecl _ _ _ [H.HsVarOp name])     = Right (Fixity name)
     identify (H.HsInfixDecl _ _ _ [H.HsConOp name])     = Right (Fixity name)
+    identify (H.HsInstDecl _ _ cls tys _)               = Right (Instance cls tys)
     identify decl = Left ("Cannot merge this declaration: "
                           ++ takeWhile (/= '\n') (dropWhile isSpace (H.prettyPrint decl)))
 
--- | Datatype declarations and functions are merged.
+-- | Datatype declarations, functions, and typeclass instance declarations are merged.
 --   Type synonyms, @newtype@s, type signatures, and fixity declarations are overridden from the left.
 instance Superimposable H.HsDecl where
     H.HsDataDecl loc ctx name vars cons1 derivs1 --> H.HsDataDecl _ _ _ _ cons2 derivs2 = do
@@ -265,6 +271,9 @@ instance Superimposable H.HsDecl where
     H.HsFunBind ms1 --> H.HsFunBind ms2
         | length (nub [length pats | H.HsMatch _ _ pats _ _ <- ms1 ++ ms2]) == 1
         = fmap H.HsFunBind (ms1 --> ms2)
+    H.HsInstDecl loc ctx cls tys decls1 --> H.HsInstDecl _ _ _ _ decls2 = do
+        decls <- decls1 --> decls2
+        return (H.HsInstDecl loc ctx cls tys decls)
     x --> _ = Right x
 
 -------------------------------------------------------------------------------

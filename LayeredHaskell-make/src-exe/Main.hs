@@ -50,7 +50,7 @@ main = do
                 putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
             | otherwise -> do
                 writeFile features (unlines feats)
-                putStrLn $ infoLabel "Enabled '" ++ unwords feats ++ "'."
+                putStrLn $ infoLabel "Enabled " ++ unwords feats ++ "."
         -- Unrecognized input
         _  -> do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
