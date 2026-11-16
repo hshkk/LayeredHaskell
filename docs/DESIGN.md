@@ -40,7 +40,7 @@ locally cached, and the new interpreter is run on the given source code.
 
 The program will be interfaced through the command line, similar to other
 interpreters like Python or GHCi. As of now, features are selected from a
-[text file](./LayeredHaskell-make/src/LH/Feature/Features).
+text file at `LayeredHaskell-make/src/LH/Feature/Features`.
 
 ## Data
 
