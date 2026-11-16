@@ -138,8 +138,11 @@ operators = describe "operators" $ do
     "<= =" `lexesTo` [LHsTkLte, LHsTkEq]
     "> ==" `lexesTo` [LHsTkGt, LHsTkEqEq]
     ">= =" `lexesTo` [LHsTkGte, LHsTkEq]
+    "."    `lexesTo` [LHsTkDot]
+    "$"    `lexesTo` [LHsTkDollar]
     ":"    `lexesTo` [LHsTkColon]
     "++"   `lexesTo` [LHsTkPlusPlus]
+    "!!"   `lexesTo` [LHsTkExclExcl]
     "+ +"  `lexesTo` [LHsTkPlus, LHsTkPlus]
 
 lambdasAndApplications :: Spec
@@ -216,8 +219,8 @@ lexicalErrors = describe "lexical errors" $ do
     lexical "{"            (1, 1) "{"
     lexical "}"            (1, 1) "}"
     lexical "x -} y"       (1, 4) "}"
-    lexical "\\x.x"        (1, 3) "."
-    lexical "M.x"          (1, 2) "."
+    lexical "\\x!x"        (1, 3) "!"
+    lexical "M!x"          (1, 2) "!"
     lexical "x @@ y"       (1, 3) "@@"
     lexical "@@x"          (1, 1) "@@"
     lexical "\\\\"         (1, 1) "\\\\"
@@ -297,6 +300,12 @@ dataDeclarations = describe "datatype declarations" $ do
     "data T = A\nf = a"          `layoutsTo` "{ data T = A ; f = a }"
     -- Note: rejecting the following datatype declaration is the parser's responsibility, not the lexer.
     "data T = A\n| B"            `layoutsTo` "{ data T = A ; | B }"
+
+typeSynonyms :: Spec
+typeSynonyms = describe "type synonyms" $ do
+    "type X a = A a"   `lexesTo` [LHsTkType, LHsTkCon "X", LHsTkVar "a", LHsTkEq, LHsTkCon "A", LHsTkVar "a"]
+    "type X = A -> B"  `lexesTo` [LHsTkType, LHsTkCon "X", LHsTkEq, LHsTkCon "A", LHsTkArrow, LHsTkCon "B"]
+    "type Type = Data" `lexesTo` [LHsTkType, LHsTkCon "Type", LHsTkEq, LHsTkCon "Data"]
  
 caseExpressions :: Spec
 caseExpressions = describe "case expressions" $ do
@@ -321,8 +330,18 @@ typeSignatures = describe "type signatures" $ do
     "f\n:: Int -> Int"   `layoutsTo` "{ f ; :: Int -> Int }"
     "f ::\nInt -> Int"   `layoutsTo` "{ f :: ; Int -> Int }"
 
+listsAndTuples :: Spec
+listsAndTuples = describe "lists and tuples" $ do
+    "[a]"         `lexesTo` [LHsTkLBrack, LHsTkVar "a", LHsTkRBrack]
+    "[d,e]"       `lexesTo` [LHsTkLBrack, LHsTkVar "d", LHsTkComma, LHsTkVar "e", LHsTkRBrack]
+    "[[a]]"       `lexesTo` [LHsTkLBrack, LHsTkLBrack, LHsTkVar "a", LHsTkRBrack, LHsTkRBrack]
+    "[a -> b]"    `lexesTo` [LHsTkLBrack, LHsTkVar "a", LHsTkArrow, LHsTkVar "b", LHsTkRBrack]
+    "(a,b)"       `lexesTo` [LHsTkLParen, LHsTkVar "a", LHsTkComma, LHsTkVar "b", LHsTkRParen]
+    "((a,b))"     `lexesTo` [LHsTkLParen, LHsTkLParen, LHsTkVar "a", LHsTkComma, LHsTkVar "b", LHsTkRParen, LHsTkRParen]
+    "(a -> a, b)" `lexesTo` [LHsTkLParen, LHsTkVar "a", LHsTkArrow, LHsTkVar "a", LHsTkComma, LHsTkVar "b", LHsTkRParen]
+
 spec :: Spec
-spec = describe "LH.Text.Lexer" $ do
+spec = do
     variables
     constructors
     integers
@@ -341,5 +360,7 @@ spec = describe "LH.Text.Lexer" $ do
     layoutErrors
     equations
     dataDeclarations
+    typeSynonyms
     caseExpressions
     typeSignatures
+    listsAndTuples

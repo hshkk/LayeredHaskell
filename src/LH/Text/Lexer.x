@@ -135,9 +135,13 @@ tokens :-
     -- Equality
     "=="                      { token LHsTkEqEq     }
     "/="                      { token LHsTkNotEq    }
+    -- Function operators
+    "."                       { token LHsTkDot      }
+    "$"                       { token LHsTkDollar   }
     -- List operators
     ":"                       { token LHsTkColon    }
     "++"                      { token LHsTkPlusPlus }
+    "!!"                      { token LHsTkExclExcl }
     ---------------------------------------------------------------------------
     -- Literals
     $digit+                   { numeric LHsTkInt }

@@ -38,8 +38,8 @@ import LH.Text.Token
 %expect 0
 
 %token
-    'case'  { LHsLexeme _ LHsTkCase }
-    'of'    { LHsLexeme _ LHsTkOf }
+    'case' { LHsLexeme _ LHsTkCase }
+    'of'   { LHsLexeme _ LHsTkOf }
 
 %%
 

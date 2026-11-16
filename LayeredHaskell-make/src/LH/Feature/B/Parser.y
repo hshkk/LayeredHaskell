@@ -52,14 +52,16 @@ import LH.Text.Token
     'if'    { LHsLexeme _ LHsTkIf            }
     'then'  { LHsLexeme _ LHsTkThen          }
     'else'  { LHsLexeme _ LHsTkElse          }
+    '('     { LHsLexeme _ LHsTkLParen        }
+    ')'     { LHsLexeme _ LHsTkRParen        }
 
-%right 'else'
-%left '||'
-%left '&&'
+%right    'else'
+%left     '||'
+%left     '&&'
 %nonassoc '==' '/='
 %nonassoc '<' '>' '<=' '>='
-%left '+' '-'
-%left '*'
+%left     '+' '-'
+%left     '*'
 -- Negation takes the highest precedence.
 %left NEG
 
@@ -88,17 +90,31 @@ Expr :: { LHsExpr }
     | '-' Expr %prec NEG    { LHsNeg $2 }
 
 Atom :: { LHsExpr }
-    : int    { LHsInt $1 }
+    : int         { LHsInt $1 }
+    | '(' Bin ')' { LHsPre $2 }
+
+Bin :: { LHsBin }
+    : '+'         { LHsAdd }
+    | '-'         { LHsSub }
+    | '*'         { LHsMul }
+    | '||'        { LHsOr  }
+    | '&&'        { LHsAnd }
+    | '<'         { LHsLt  }
+    | '>'         { LHsGt  }
+    | '<='        { LHsLte }
+    | '>='        { LHsGte }
+    | '=='        { LHsEq  }
+    | '/='        { LHsNeq }
 
 -------------------------------------------------------------------------------
 -- Patterns
 
 PatAtom :: { LHsPat }
-    : int     { LHsPInt $1 }
+    : int         { LHsPInt $1 }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
     -- This shouldn't cause any issues, since B only defines True and False as valid pattern constructors.
-    | con     { LHsPCon $1 Seq.empty }
+    | con         { LHsPCon $1 Seq.empty }
 
 -------------------------------------------------------------------------------
 -- Types
@@ -107,4 +123,4 @@ TyAtom :: { LHsType }
     -- This rule is more general than it needs to be due to an
     -- unintended interaction with other features. 
     -- This shouldn't cause any issues, since B only defines Int and Bool as valid type constructors.
-    : con     { LHsTyCon $1 Seq.empty }
+    : con         { LHsTyCon $1 Seq.empty }

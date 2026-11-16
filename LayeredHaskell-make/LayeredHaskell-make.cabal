@@ -74,6 +74,7 @@ library
     exposed-modules:
         LH.Control.Superimposition
         LH.Data.Feature
+        LH.Data.Error
         LH.Text.Label
         LH.Text.Happy.Pretty
 
@@ -117,6 +118,7 @@ executable LayeredHaskell-make
     build-depends:
         , LayeredHaskell-make
         , base        ^>=4.18.3.0
+        , filepath    ^>=1.4.301
 
     -- Directories containing source files.
     hs-source-dirs:   src-exe

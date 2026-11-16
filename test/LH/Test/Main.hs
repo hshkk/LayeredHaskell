@@ -7,5 +7,5 @@ import qualified LH.Test.Text.Parser as Parser
 
 main :: IO ()
 main = hspec $ do
-    Lexer.spec
-    Parser.spec
+    describe "lexer"   Lexer.spec
+    describe "parsers" Parser.spec
