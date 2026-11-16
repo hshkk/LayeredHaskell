@@ -383,12 +383,12 @@ combos = do
                      (Set.toList
                          (Set.map (select registry)
                                   (Set.powerSet (Map.keysSet (Map.filter (not . hidden) registry))))))
-             (\feats -> fmap (map (\name -> (name, manual feats name)))
-                             (order registry feats))
+             (\names -> fmap (map (\name -> (name, manual names name)))
+                             (order registry names))
     where
         -- A feature for which manual returns True must be selected manually.
         -- False means that the feature can be automatically enabled as a dependency.
-        manual feats name = not (name `Set.member` select registry (Set.delete name feats))
+        manual names name = not (name `Set.member` select registry (Set.delete name names))
 
 -- | Generates and prints a list of all possible (non-redundant) feature combinations, 
 --   with dependencies and implications automatically resolved.

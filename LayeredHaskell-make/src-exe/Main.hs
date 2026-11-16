@@ -42,15 +42,14 @@ main = do
         -- Setting and showing features
         ["show"]    -> do
             names <- getNames
-            putStrLn $ infoLabel "Listing enabled features..."
-            putStrLn $ infoLabel (unwords names)
-        "set":feats
-            | null feats -> do
+            putStrLn $ infoLabel "Currently enabled: " ++ unwords names 
+        "set":names
+            | null names -> do
                 putStrLn $ errLabel "One or more features must be enabled."
                 putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
             | otherwise -> do
-                writeFile features (unlines feats)
-                putStrLn $ infoLabel "Enabled " ++ unwords feats ++ "."
+                writeFile features (unlines names)
+                putStrLn $ infoLabel "Enabled just now: " ++ unwords names 
         -- Unrecognized input
         _  -> do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
