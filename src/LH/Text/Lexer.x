@@ -285,7 +285,7 @@ scanToken = do
 
 -- | Tokenizes the /entirety/ of the input, producing a (potential) list of 'LHsLexeme's.
 --   If the input is a program, one should use 'scanTokensAsProgram' instead.
-scanTokens :: Text -> Either LHsError [LHsLexeme]
+scanTokens :: Text -> Either LHsTextError [LHsLexeme]
 scanTokens = runLHsParser scan
     where
         scan = do
@@ -302,7 +302,7 @@ beginProgram = pushStcd layout (LHsPos 1 1)
 -- | Tokenizes the /entirety/ of the input as a program, producing a (potential) list of 'LHsLexeme's.
 --
 --   This function invokes 'beginProgram', so it is preferable for lexing entire programs over 'scanTokens'.
-scanTokensAsProgram :: Text -> Either LHsError [LHsLexeme]
+scanTokensAsProgram :: Text -> Either LHsTextError [LHsLexeme]
 scanTokensAsProgram = runLHsParser (beginProgram >> scan)
     where
         scan = do

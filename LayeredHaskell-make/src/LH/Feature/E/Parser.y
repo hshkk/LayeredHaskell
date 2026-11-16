@@ -139,7 +139,7 @@ lexer :: (LHsLexeme -> LHsParser a) -> LHsParser a
 lexer f = scanToken >>= f
 
 -- | Parses a program, producing a sequence of declarations ('LHsDecl').
-parseProgram :: Text -> Either LHsError (Seq (L LHsDecl))
+parseProgram :: Text -> Either LHsTextError (Seq (L LHsDecl))
 parseProgram = runLHsParser (beginProgram >> program)
 
 -- | Reports a token that the parser did not expect.
