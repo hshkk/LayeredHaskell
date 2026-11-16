@@ -18,7 +18,7 @@ features = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> "Featu
 
 -- | The destination directory for generated source files.
 dir :: FilePath
-dir = "src" </> "LHMake" </> "Feature"
+dir = "src" </> "LH" </> "Feature"
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
