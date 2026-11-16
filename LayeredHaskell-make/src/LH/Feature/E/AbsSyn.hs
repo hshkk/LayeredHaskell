@@ -26,11 +26,11 @@ module LH.Feature.AbsSyn (
     LHsEnv
     ) where
 
-import Data.Map      (Map)
-import Data.Sequence (Seq)
-import Data.Text     (Text)
+import Data.Map       (Map)
+import Data.Sequence  (Seq)
+import Data.Text      (Text)
 
-import LH.Text.Located (L)
+import LH.Data.SrcLoc (L)
 
 -- | An identifier.
 type Id = L Text
