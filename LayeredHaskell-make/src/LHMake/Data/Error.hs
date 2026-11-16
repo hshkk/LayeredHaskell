@@ -16,5 +16,5 @@ module LHMake.Data.Error (
     LHsMakeError
     ) where
 
--- | An error.
+-- | An error, which we represent simply as a 'String'.
 type LHsMakeError a = Either String a
