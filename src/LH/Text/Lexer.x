@@ -27,6 +27,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Read as Text (decimal)
 
+import LH.Data.SrcLoc
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }

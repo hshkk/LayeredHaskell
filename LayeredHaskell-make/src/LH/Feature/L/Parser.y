@@ -21,9 +21,9 @@ import Control.Monad.Except (throwError)
 
 import Data.Sequence (Seq, (<|))
 
+import LH.Data.SrcLoc
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
-import LH.Text.Located
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }

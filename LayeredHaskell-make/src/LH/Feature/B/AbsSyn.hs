@@ -22,7 +22,7 @@ module LH.Feature.AbsSyn (
     LHsPat (..)
     ) where
 
-import LH.Text.Located (L)
+import LH.Data.SrcLoc (L)
 
 -- | An expression.
 data LHsExpr

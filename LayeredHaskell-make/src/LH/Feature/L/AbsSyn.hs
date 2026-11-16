@@ -22,9 +22,9 @@ module LH.Feature.AbsSyn (
     LHsType (..)
     ) where
 
-import Data.Sequence   (Seq)
+import Data.Sequence  (Seq)
 
-import LH.Text.Located (L)
+import LH.Data.SrcLoc (L)
 
 data LHsExpr
     = LHsList (Seq (L LHsExpr))     -- ^ A list expression.

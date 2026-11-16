@@ -47,7 +47,8 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Lazy     as LazyText
 
-import LH.Text.Token (LHsPos (..), LHsSpan (..), LHsToken (..))
+import LH.Data.SrcLoc (LHsPos (..), LHsSpan (..))
+import LH.Text.Token  (LHsToken (..))
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
