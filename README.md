@@ -12,6 +12,8 @@ The modularity of Layered Haskell enables language variants that support a gentl
 
 Clone the repository and execute `cd LayeredHaskell`.
 
+It is _not_ recommended to use `cabal install` on either `LayeredHaskell` or `LayeredHaskell-make`, as the program as it exists will likely not function as intended, if at all. One should use `cabal run` as the [Usage](#usage) section describes, or write a (local) command alias. This may be changed in the future.
+
 # Usage
 
 This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for Haskell libraries and programs. The current project has been tested against version 3.14.2.0. If a newer version is already installed, one may try passing the `--allow-newer` flag into the `cabal` executable.
@@ -28,11 +30,17 @@ Some useful commands are as follows.
 
 To enable (or disable) features, execute the following.
 ```
-cabal run LayeredHaskell-make -- set ...
+cabal run LayeredHaskell-make -- set <features>
 ```
-Substitute `...` for a (nonempty) set of features separated by spaces.
+Substitute `<features>` for a (nonempty) set of features separated by spaces.
+To see what features can be enabled, refer to the [What's available?](#whats-available) section.
 
-If you would like to inspect the source files corresponding to the set of enabled features, run `cabal build` afterwards and check the contents of `src/LH/Feature/`.
+Execute the following command to inspect the set of enabled features without changing the existing configuration.
+```
+cabal run LayeredHaskell-make -- show
+```
+
+If you would like to inspect the source files corresponding to the set of enabled features, run `cabal build` after executing `set` and check the contents of `src/LH/Feature/`.
 
 ### What's available?
 
@@ -40,7 +48,7 @@ For a list of features, execute the following.
 ```
 cabal run LayeredHaskell-make -- ls
 ```
-For a list of *all* features (that is, including hidden ones), execute the following.
+For a list of *all* features (that is, including hidden ones), execute the following. Note that hidden features cannot be manually enabled, and an error will be thrown if one tries to manually enable a hidden feature.
 ```
 cabal run LayeredHaskell-make -- ls a
 ```
