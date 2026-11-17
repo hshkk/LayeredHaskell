@@ -11,6 +11,7 @@ import Test.Hspec
 
 import qualified Data.Text as Text
 
+import LH.Data.SrcLoc
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token
@@ -19,12 +20,12 @@ import LH.Text.Token
 -- Helper functions for writing general tests idiomatically
 
 -- Tokenizes the entirety of the input, producing a (potential) list of tokens (not lexemes).
-tokens :: Text -> Either LHsError [LHsToken]
+tokens :: Text -> Either LHsTextError [LHsToken]
 tokens = fmap (map (\(LHsLexeme _ tok) -> tok)) . scanTokens
 
 -- Tokenizes the entirety of the input, producing a (potential) list of positions (not lexemes).
-positions :: Text -> Either LHsError [(Int, Int)]
-positions = fmap (map (\(LHsLexeme (LHsPos l c) _) -> (l, c))) . scanTokens
+positions :: Text -> Either LHsTextError [(Int, Int)]
+positions = fmap (map (\(LHsLexeme (LHsSpan (LHsPos l c) _) _) -> (l, c))) . scanTokens
 
 -- Does the source produce an expected list of tokens?
 lexesTo :: HasCallStack => Text -> [LHsToken] -> Spec
@@ -35,7 +36,7 @@ hasPositions :: HasCallStack => Text -> [(Int, Int)] -> Spec
 hasPositions src expected = it (show src) $ positions src `shouldBe` Right expected
 
 -- Does the source produce an expected error?
-failsWith :: HasCallStack => Text -> LHsError -> Spec
+failsWith :: HasCallStack => Text -> LHsTextError -> Spec
 failsWith src err = it (show src) $ tokens src `shouldBe` Left err
 
 -- Does the source produce a lexical error?
@@ -50,7 +51,8 @@ unclosed src (l, c) = src `failsWith` UnclosedComment (LHsPos l c)
 eofAt :: HasCallStack => Text -> Int -> (Int, Int) -> Spec
 eofAt src n (l, c) =
     it (show src ++ ", token " ++ show n) $
-        runLHsParser (scan n) src `shouldBe` Right (LHsLexeme (LHsPos l c) LHsTkEOF)
+        fmap (\(LHsLexeme (LHsSpan pos _) tok) -> (pos, tok)) (runLHsParser (scan n) src)
+            `shouldBe` Right (LHsPos l c, LHsTkEOF)
     where
         scan :: Int -> LHsParser LHsLexeme
         scan 1 = scanToken
@@ -60,7 +62,7 @@ eofAt src n (l, c) =
 -- Helper functions for writing layout tests idiomatically
 
 -- Tokenizes the entirety of the input as a program, producing a (potential) list of tokens (not lexemes).
-tokensAsProgram :: Text -> Either LHsError [LHsToken]
+tokensAsProgram :: Text -> Either LHsTextError [LHsToken]
 tokensAsProgram = fmap (map (\(LHsLexeme _ tok) -> tok)) . scanTokensAsProgram
  
 -- Pretty-prints tokens including layout.

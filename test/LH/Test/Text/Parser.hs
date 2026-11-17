@@ -2,17 +2,17 @@
 -- This module provides a test suite for Layered Haskell's parsers.
 module LH.Test.Text.Parser (spec) where
 
-import Control.Monad    (forM_, unless, void)
+import Control.Monad       (forM_, unless, void)
 import System.Directory
-import System.Exit      (ExitCode (..))
+import System.Exit         (ExitCode (..))
 import System.FilePath
-import System.IO.Temp   (withSystemTempDirectory)
-import System.Process   (readProcessWithExitCode)
+import System.IO.Temp      (withSystemTempDirectory)
+import System.Process      (readProcessWithExitCode)
 
 import Test.Hspec
 
-import LH.Data.Feature  (FeatureName, superimpose, combos)
-import LH.Data.Error    (LHsMakeError)
+import LHMake.Data.Feature (FeatureName, superimpose, combos)
+import LHMake.Data.Error   (LHsMakeError)
 
 spec :: Spec
 spec = case cases of

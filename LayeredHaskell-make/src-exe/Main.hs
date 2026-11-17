@@ -4,17 +4,17 @@ import Data.Version       (showVersion)
 import System.Environment (getArgs)
 import System.FilePath    ((</>))
 
-import qualified Paths_LayeredHaskell_make as LH (version)
+import qualified Paths_LayeredHaskell_make as LHMake (version)
 
-import LH.Data.Feature 
+import LHMake.Data.Feature 
     (superimpose, 
      list, listAll, listDeps, 
      generate)
-import LH.Text.Label      (infoLabel, hintLabel, warnLabel, errLabel)
+import LHMake.Text.Label  (infoLabel, hintLabel, warnLabel, errLabel)
 
 -- | The file containing the features that @LayeredHaskell-make@ will collate and generate source files for.
 features :: FilePath
-features = "LayeredHaskell-make" </> "src" </> "LH" </> "Feature" </> "Features"
+features = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> "Features"
 
 -- | The destination directory for generated source files.
 dir :: FilePath
@@ -42,15 +42,14 @@ main = do
         -- Setting and showing features
         ["show"]    -> do
             names <- getNames
-            putStrLn $ infoLabel "Listing enabled features..."
-            putStrLn $ infoLabel (unwords names)
-        "set":feats
-            | null feats -> do
+            putStrLn $ infoLabel "Currently enabled: " ++ unwords names 
+        "set":names
+            | null names -> do
                 putStrLn $ errLabel "One or more features must be enabled."
                 putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
             | otherwise -> do
-                writeFile features (unlines feats)
-                putStrLn $ infoLabel "Enabled '" ++ unwords feats ++ "'."
+                writeFile features (unlines names)
+                putStrLn $ infoLabel "Enabled just now: " ++ unwords names 
         -- Unrecognized input
         _  -> do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
@@ -81,4 +80,4 @@ help = do
 -- | Prints the version of @LayeredHaskell-make@.
 version :: IO ()
 version = do
-    putStrLn $ "LayeredHaskell-make version " ++ showVersion LH.version
+    putStrLn $ "LayeredHaskell-make version " ++ showVersion LHMake.version

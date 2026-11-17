@@ -26,7 +26,7 @@ module LH.Text.Parser.Monad (
     -- ** Layout
     getInnermostLayout, pushLayout, popLayout,
     -- ** Errors
-    LHsError (..), renderError, buildError
+    LHsTextError (..)
     ) where
 
 import Control.Monad.Except       (MonadError)
@@ -40,14 +40,14 @@ import Data.Text  (Text)
 import Data.Word  (Word8)
 
 import Errata
-import Errata.Styles
 
 import qualified Data.ByteString    as Byte
 import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
-import qualified Data.Text.Lazy     as LazyText
 
-import LH.Text.Token (LHsPos (..), LHsToken (..))
+import LH.Data.Error  (LHsError (buildError), underline, (+>))
+import LH.Data.SrcLoc (LHsPos (..), LHsSpan (..))
+import LH.Text.Token  (LHsToken (..))
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
@@ -96,12 +96,12 @@ alexInputPrevChar = aiPrev
 -------------------------------------------------------------------------------
 -- Definitions for a parser monad with basic error handling 
 
--- | A parser monad with state ('LHsState') and errors ('LHsError').
-newtype LHsParser a = LHsParser (StateT LHsState (Either LHsError) a)
-    deriving (Functor, Applicative, Monad, MonadState LHsState, MonadError LHsError)
+-- | A parser monad with state ('LHsState') and errors ('LHsTextError').
+newtype LHsParser a = LHsParser (StateT LHsState (Either LHsTextError) a)
+    deriving (Functor, Applicative, Monad, MonadState LHsState, MonadError LHsTextError)
 
 -- | Runs a 'LHsParser' against an input 'Text'.
-runLHsParser :: LHsParser a -> Text -> Either LHsError a
+runLHsParser :: LHsParser a -> Text -> Either LHsTextError a
 runLHsParser (LHsParser m) src = 
     evalStateT m (LHsState (AlexInput initPos initPrev initBytes src) initStack initStack)
     where
@@ -164,59 +164,35 @@ popLayout = modify (\st -> st { stLayout = drop 1 (stLayout st) })
 -------------------------------------------------------------------------------
 -- Errors
 
--- | An error.
-data LHsError
-    = LexicalError    !LHsPos !Text             -- ^ A lexical error emitted by Alex.
-    | UnclosedComment !LHsPos                   -- ^ An unclosed multi-line comment error emitted by Alex.
-    | ParseError      !LHsPos !LHsPos !LHsToken -- ^ A parse error emitted by Happy. 
-                                                --   The first two arguments indicate where an unexpected token 
-                                                --   starts and ends in the source.
+-- | A text-related error emitted by the lexer or parser.
+data LHsTextError
+    = LexicalError    !LHsPos !Text         -- ^ A lexical error emitted by Alex.
+    | UnclosedComment !LHsPos               -- ^ An unclosed multi-line comment error emitted by Alex.
+    | ParseError      !LHsSpan !LHsToken    -- ^ A parse error emitted by Happy. 
+                                            --   The first argument indicates where an unexpected token 
+                                            --   starts and ends in the source.
     deriving (Eq, Show)
 
--- | Renders a 'LHsError' as a message referencing the source text.
---
---   Note that for 'renderError' to produce expected output, 
---   the 'Text' argument must be the /same/ source text that was given to the lexer.
-renderError :: FilePath    -- ^ The filepath of the source text. 
-            -> Text        -- ^ The source text itself.
-            -> LHsError    -- ^ An error.
-            -> Text
-renderError file src err = LazyText.toStrict (prettyErrors src [buildError file err])
- 
--- | Builds the message corresponding to a 'LHsError'.
-buildError :: FilePath    -- ^ The filepath of the source text. 
-           -> LHsError    -- ^ An error.
-           -> Errata      -- ^ A pretty-printable representation of the error.
-                          --   This is where the error message itself should be written,
-                          --   in addition to places in the source that it may need to point to.
-buildError file (LexicalError pos bad) =
-    errataSimple
-        (Just ("Lexical error: unexpected `" <> bad <> "`"))
-        (underline file pos (Text.length bad) "this is not a valid token")
-        Nothing
-buildError file (UnclosedComment pos) =
-    errataSimple
-        (Just "Unclosed comment")
-        (underline file pos 2 "this comment is never closed")
-        Nothing
-buildError file (ParseError start end bad) =
-    errataSimple
-        (Just "Parse error")
-        (underline file start len label)
-        Nothing
-    where
-        len   = max 1 (posCol end - posCol start)
-        label = case bad of
-            LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
-            LHsTkVClose -> "the block ends here, but something before it is unfinished"
-            _           -> "this was not expected here"
+instance LHsError LHsTextError where
+    buildError file (LexicalError pos bad) =
+        errataSimple
+            (Just ("Lexical error: unexpected `" <> bad <> "`"))
+            (underline file (pos +> Text.length bad) "this is not a valid token")
+            Nothing
+    buildError file (UnclosedComment pos) =
+        errataSimple
+            (Just "Unclosed comment")
+            (underline file (pos +> 2) "this comment is never closed")
+            Nothing
+    buildError file (ParseError (LHsSpan start end) bad) =
+        errataSimple
+            (Just "Parse error")
+            -- Virtual tokens have an empty span, so we underline at least one character.
+            (underline file (LHsSpan start (end { posCol = max (posCol end) (posCol start + 1) })) label)
+            Nothing
+        where
+            label = case bad of
+                LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
+                LHsTkVClose -> "the block ends here, but something before it is unfinished"
+                _           -> "this was not expected here"
 
--- | Underlines a number of characters on a single line with a label, starting at a given position.
-underline :: FilePath    -- ^ The filepath of the source text.
-          -> LHsPos      -- ^ The starting position.
-          -> Int         -- ^ The number of characters to underline from that position.
-          -> Text        -- ^ A label.
-          -> Block
-underline file (LHsPos l c) len label =
-    blockSimple fancyRedStyle fancyRedPointer file Nothing
-        (l, c, c + len, Just label) Nothing

@@ -1,6 +1,6 @@
 {- |
 Module      : LH.Text.Token
-Description : Tokens and source positions.
+Description : Tokens.
 Copyright   : (c) Hangil Kim, 2026
                   Kairon Johnson, 2026
                   Leonidas Sallos, 2026
@@ -9,25 +9,14 @@ License     : MIT
 Maintainer  : kimhang@oregonstate.edu
 Stability   : experimental
 
-This module provides definitions for source positions and tokens.
+This module provides definitions for tokens.
 -}
 module LH.Text.Token (
-    -- * Source positions
-    LHsPos (..), 
     -- * Tokens
-    LHsToken (..), 
-    -- ** Lexemes
-    LHsLexeme (..)
+    LHsToken (..)
     ) where
 
 import Data.Text (Text)
-
--- | A position in the source.
-data LHsPos = LHsPos 
-    { posLine :: !Int      -- ^ A line.
-    , posCol  :: !Int      -- ^ A column.
-    }
-    deriving (Eq, Ord, Show)
 
 -- | A token.
 data LHsToken
@@ -100,8 +89,4 @@ data LHsToken
     ---------------------------------------------------------------------------
     -- End-of-file
     | LHsTkEOF             -- ^ The token indicating end-of-file (EOF).
-    deriving (Eq, Show)
-
--- | A token paired with its position in the source.
-data LHsLexeme = LHsLexeme !LHsPos !LHsToken
     deriving (Eq, Show)

@@ -1,0 +1,51 @@
+{- |
+Module      : LH.Feature.AbsSyn
+Description : The abstract syntax for F.
+Copyright   : (c) Hangil Kim, 2026
+                  Kairon Johnson, 2026
+                  Leonidas Sallos, 2026
+                  Oscar Abelanet, 2026
+License     : MIT
+Maintainer  : kimhang@oregonstate.edu
+Stability   : experimental
+
+This module provides abstract syntax definitions for F.
+-}
+module LH.Feature.AbsSyn (
+    -- ** Expressions and values
+    LHsExpr (..),
+    -- ** Binary operators
+    LHsBin (..),
+    -- ** Patterns
+    LHsPat (..),
+    -- ** Types
+    LHsType (..),
+    ) where
+
+import Data.Sequence  (Seq)
+
+import LH.Data.SrcLoc (L)
+
+-- | An expression.
+data LHsExpr
+    = LHsLam (Seq (L LHsPat)) (L LHsExpr)     -- ^ A lambda abstraction.
+    | LHsBin  LHsBin (L LHsExpr) (L LHsExpr)  -- ^ A binary operation.
+    | LHsPre  LHsBin                          -- ^ A binary operator written in prefix form.
+    deriving (Eq, Show)
+
+-- | A binary operator.
+data LHsBin
+    = LHsFunApp                       -- ^ Function application.
+    | LHsFunComp                      -- ^ Function composition.
+    deriving (Eq, Show)
+
+-- | A pattern.
+data LHsPat
+    = LHsPVar Id                      -- ^ A pattern variable.
+    | LHsPWild                        -- ^ The wildcard pattern.
+    deriving (Eq, Show)
+
+-- | A type.
+data LHsType
+    = LHsTyFn (L LHsType) (L LHsType) -- ^ A function type.
+    deriving (Eq, Show)
