@@ -46,9 +46,9 @@ build :: IO ()
 build = void (run "cabal" ["build", "lib:LayeredHaskell"])
 
 -- Generates the source files for a feature combination.
--- The tests then operate on a temporary directory named @lhs-parser-test@.
+-- The tests then operate on a temporary directory named @LayeredHaskell-<hex string>@.
 withBuild :: [FeatureName] -> (FilePath -> IO ()) -> IO ()
-withBuild args tests = withSystemTempDirectory "lhs-parser-test" $ \dir -> do
+withBuild args tests = withSystemTempDirectory "LayeredHaskell-test" $ \dir -> do
     let featureDir = dir </> "LH" </> "Feature"
     -- Create ../LH/Feature/, which will then receive the superimposed files.
     createDirectoryIfMissing True featureDir
