@@ -30,14 +30,12 @@ pprHappy :: BookendedAbsSyn -> String
 pprHappy (BookendedAbsSyn options header (AbsSyn directives rules) footer) =
     concat
         [ maybe "" (\o -> "{-# " ++ o ++ " #-}\n\n") options
-        , maybe "" (\h -> braces' (pragmas ++ h) ++ "\n\n") header
+        , maybe "" (\h -> braces' h ++ "\n\n") header
         , unlines (map pprDirective directives)
         , "\n%%\n\n"
         , intercalate "\n" (map pprRule rules)
         , maybe "" (\f -> "\n" ++ braces' f ++ "\n") footer
         ]
-    where
-        pragmas = "{-# OPTIONS_HADDOCK hide #-}\n{-# LANGUAGE OverloadedStrings #-}\n"
 
 -------------------------------------------------------------------------------
 -- Directives

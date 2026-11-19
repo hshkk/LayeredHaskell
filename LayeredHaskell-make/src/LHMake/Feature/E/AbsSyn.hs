@@ -11,11 +11,12 @@ Stability   : experimental
 
 This module provides abstract syntax definitions for E.
 -}
+{-# OPTIONS_HADDOCK hide #-}
 module LH.Feature.AbsSyn (
     -- * Identifiers
     Id, 
     -- * Declarations
-    LHsDecl (..), 
+    LHsDecl (..),
     -- ** Expressions and values
     LHsExpr (..), LHsVal (..),
     -- ** Patterns
