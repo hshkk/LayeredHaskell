@@ -1,4 +1,7 @@
 # Layered Haskell
+[![tests](https://img.shields.io/github/actions/workflow/status/hshkk/LayeredHaskell/ci.yml?branch=main&label=tests)](https://github.com/hshkk/LayeredHaskell/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-Haddock-blue)](https://hshkk.github.io/LayeredHaskell/)
+
 **Layered Haskell** is a _layered_ functional language in which users can enable and disable various language features at will. 
 The modularity of Layered Haskell enables language variants that support a gentle introduction to functional programming for novices while also providing a means for exploring language extensions.
 

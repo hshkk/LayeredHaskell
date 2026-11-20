@@ -1,0 +1,75 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  FOLDER: LayeredHaskell-${{ matrix.name }}
+  ARCHIVE: LayeredHaskell-${{ matrix.name }}.${{ matrix.archive }}
+  # <layer name>|<features>
+  # WARNING: Don't put spaces around the | character.
+  LAYERS: |
+    LH0|B
+    LH1|B D
+    LH2|P B L
+  # TODO: These are placeholders. Later on, we will decide on what each layer should provide.
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            ext: ""
+            archive: tar.gz
+          - os: windows-latest
+            name: win
+            ext: ".exe"
+            archive: zip
+          - os: macos-latest
+            name: osx
+            ext: ""
+            archive: tar.gz
+    runs-on: ${{ matrix.os }}
+    env:
+      ARCHIVE: LayeredHaskell-${{ matrix.name }}.${{ matrix.archive }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.6.7'
+        cabal-version: '3.12.1.0'
+
+    - name: Build all layers
+      shell: bash
+      run: |
+        cabal update
+        mkdir -p "dist/$FOLDER"
+        while IFS='|' read -r name features; do
+          [ -z "$name" ] && continue
+          cabal run LayeredHaskell-make -- set $features < /dev/null
+          cabal build exe:LayeredHaskell < /dev/null
+          cp "$(cabal list-bin exe:LayeredHaskell)" "dist/$FOLDER/$name${{ matrix.ext }}"
+        done <<< "$LAYERS"
+
+    - name: Create archive
+      shell: bash
+      run: |
+        cd dist
+        if [ "${{ matrix.archive }}" = "zip" ]; then
+          7z a "../$ARCHIVE" "$FOLDER"
+        else
+          tar -czf "../$ARCHIVE" "$FOLDER"
+        fi
+
+    - name: Attach to release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release upload "${{ github.event.release.tag_name }}" "$ARCHIVE"
