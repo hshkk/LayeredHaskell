@@ -63,6 +63,11 @@ extra-source-files:
     src/LHMake/Feature/**/*.hs
     src/LHMake/Feature/**/*.y
 
+source-repository head
+    type:     git
+    location: https://github.com/hshkk/LayeredHaskell
+    subdir:   LayeredHaskell-make
+
 common warnings
     ghc-options: -Wall
 
@@ -109,6 +114,9 @@ executable LayeredHaskell-make
 
     -- Modules included in this executable, other than Main.
     other-modules:
+        Paths_LayeredHaskell_make
+
+    autogen-modules:
         Paths_LayeredHaskell_make
 
     -- LANGUAGE extensions used by modules in this package.
