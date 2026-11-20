@@ -59,9 +59,14 @@ tested-with:        GHC == 9.6.7
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 extra-source-files:
-    src/LH/Feature/Features
-    src/LH/Feature/**/*.hs
-    src/LH/Feature/**/*.y
+    src/LHMake/Feature/Features
+    src/LHMake/Feature/**/*.hs
+    src/LHMake/Feature/**/*.y
+
+source-repository head
+    type:     git
+    location: https://github.com/hshkk/LayeredHaskell
+    subdir:   LayeredHaskell-make
 
 common warnings
     ghc-options: -Wall
@@ -86,13 +91,13 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base        ^>=4.18.3.0
-        , containers  ^>=0.6.7
-        , directory   ^>=1.3.8
-        , filepath    ^>=1.4.301
-        , happy-lib   ^>=2.2
-        , haskell-src ^>=1.0.4
-        , text        ^>=2.0.2
+        , base             ^>=4.18.3.0
+        , containers       ^>=0.6.7
+        , directory        ^>=1.3.8
+        , filepath         ^>=1.4.301
+        , happy-lib        ^>=2.2
+        , haskell-src-exts ^>=1.24.0
+        , text             ^>=2.0.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -109,6 +114,9 @@ executable LayeredHaskell-make
 
     -- Modules included in this executable, other than Main.
     other-modules:
+        Paths_LayeredHaskell_make
+
+    autogen-modules:
         Paths_LayeredHaskell_make
 
     -- LANGUAGE extensions used by modules in this package.

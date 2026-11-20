@@ -12,6 +12,7 @@ Stability   : experimental
 
 This module provides a parser for Layered Haskell programs with E enabled.
 -}
+{-# OPTIONS_HADDOCK hide #-}
 module LH.Feature.Parser (
     -- * Parsing
     parseProgram

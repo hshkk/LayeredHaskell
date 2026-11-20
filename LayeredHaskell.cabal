@@ -57,6 +57,10 @@ extra-doc-files:
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
 
+source-repository head
+    type:     git
+    location: https://github.com/hshkk/LayeredHaskell
+
 custom-setup
     setup-depends:
         , base  ^>=4.18.3.0
@@ -117,7 +121,11 @@ executable LayeredHaskell
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:
+        Paths_LayeredHaskell
+
+    autogen-modules:
+        Paths_LayeredHaskell
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

@@ -34,6 +34,7 @@ module LHMake.Data.Feature (
 
 import Control.Monad    (forM, forM_, unless, when)
 import Data.Bifunctor   (first)
+import Data.Functor     (void)
 import Data.List        (intercalate)
 import Data.Map         (Map)
 import Data.Maybe       (maybeToList)
@@ -43,17 +44,15 @@ import System.Exit      (die)
 import System.FilePath  (takeDirectory, (</>), (<.>))
 import System.IO        (readFile')
 
-import Happy.Frontend          (parseYFileContents)
+import Happy.Frontend   (parseYFileContents)
 import Happy.Frontend.AbsSyn
-import Language.Haskell.Syntax
-import Language.Haskell.Parser (parseModule, ParseResult (..))
-import Language.Haskell.Pretty (prettyPrint)
+import qualified Language.Haskell.Exts as H
 
 import qualified Data.Graph as Graph
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
-import LHMake.Control.Superimposition ((-->))
+import LHMake.Control.Superimposition ((-->), parseMode)
 import LHMake.Data.Error              (LHsMakeError)
 import LHMake.Text.Happy.Pretty       (pprHappy)
 import LHMake.Text.Label              (infoLabel, errLabel)
@@ -254,34 +253,38 @@ resolve reg names = do
 --
 --   The result of 'load' also carries around corresponding module names, 
 --   since we only want to superimpose modules of the same name.
-load :: Feature -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+load :: Feature -> IO (LHsMakeError (Map ModuleName (H.Module ()), Map ModuleName BookendedAbsSyn))
 load feat = do
     haskellSrcs <- traverse loadFileWithPath (modules feat)
     happySrcs   <- traverse loadFileWithPath (maybeToList (grammar feat))
     return $ do
         haskell <- forM haskellSrcs (\(file, src) -> do
-            modl@(HsModule _ (Module name) _ _ _) <- parse file src
+            modl <- parse file src
+            name <- moduleName file modl
             return (name, modl))
         happy <- forM happySrcs (\(file, src) -> do
             gram <- first ((file ++ ": ") ++) (parseYFileContents src)
             header <- case gram of
                 BookendedAbsSyn _ (Just header) _ _ -> Right header
                 _ -> Left (file ++ ": The grammar header is empty, so I can't identify it")
-            HsModule _ (Module name) _ _ _ <- parse file header
+            modl <- parse file header
+            name <- moduleName file modl
             return (name, gram))
         return (Map.fromList haskell, Map.fromList happy)
     where
         loadFileWithPath file = do
             src <- readFile file
             return (file, src)
-        parse file src = case parseModule src of
-            ParseOk modl -> Right modl
-            ParseFailed (SrcLoc _ l c) err ->
+        parse file src = case H.parseModuleWithMode parseMode src of
+            H.ParseOk modl -> Right (void modl)
+            H.ParseFailed (H.SrcLoc _ l c) err ->
                 Left (file ++ "@" ++ show l ++ ":" ++ show c ++ ": " ++ err)
+        moduleName _ (H.Module _ (Just (H.ModuleHead _ (H.ModuleName _ name) _ _)) _ _ _) = Right name
+        moduleName file _ = Left (file ++ ": The module has no header, so I can't identify it")
 
 -- | Resolves the dependencies inherent to a 'FeatureSet', then superimposes modules and grammars 
 --   such that a single set of Haskell modules and at most one Happy grammar is produced.
-merge :: Registry -> FeatureSet -> IO (LHsMakeError (Map ModuleName HsModule, Map ModuleName BookendedAbsSyn))
+merge :: Registry -> FeatureSet -> IO (LHsMakeError (Map ModuleName (H.Module ()), Map ModuleName BookendedAbsSyn))
 merge reg names = case resolve reg names of
     Left err      -> return (Left (errLabel err))
     Right enabled -> do
@@ -311,7 +314,7 @@ superimpose names dir = do
     forM_ (Map.toList haskell) $ \(name, modl) ->
         writeIfChanged
             (dir </> end name <.> "hs")
-            ("{-# OPTIONS_HADDOCK hide #-}\n" ++ prettyPrint modl)
+            (H.prettyPrint modl)
     forM_ (Map.toList happy) $ \(name, gram) ->
         writeIfChanged
             (dir </> end name <.> "y")

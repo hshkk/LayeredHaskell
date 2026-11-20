@@ -1,5 +1,6 @@
 module Main where
 
+import Data.Version       (showVersion)
 import System.Environment (getArgs)
 import System.Exit        (die)
 
@@ -7,6 +8,8 @@ import qualified Data.Text.IO as Text
 
 import LH.Data.Error      (renderError)
 import LH.Feature.Parser  (parseProgram)
+
+import qualified Paths_LayeredHaskell as LH (version)
 
 -- | Currently takes a single filepath, parses it, and prints out the AST.
 main :: IO ()
@@ -21,3 +24,8 @@ main = do
                     die ""
                 Right ast -> print ast
         _ -> die "1 filepath expected"
+
+-- | Prints the version of @LayeredHaskell@.
+version :: IO ()
+version = do
+    putStrLn $ "LayeredHaskell version " ++ showVersion LH.version
