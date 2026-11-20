@@ -28,7 +28,6 @@ import LH.Data.SrcLoc (L)
 data LHsExpr
     = LHsInt  Int                                 -- ^ An integer.
     | LHsBin  LHsBin (L LHsExpr) (L LHsExpr)      -- ^ A binary operation.
-    | LHsPre  LHsBin                              -- ^ A binary operator written in prefix form.
     | LHsNeg  (L LHsExpr)                         -- ^ Negation.
     | LHsIf   (L LHsExpr) (L LHsExpr) (L LHsExpr) -- ^ An @if@ expression.
     -- Note that we do not need a dedicated Boolean representation, since LHsCon provides this already.

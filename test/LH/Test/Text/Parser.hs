@@ -204,22 +204,6 @@ b =
         "if expression with layout"
         "g = if True == False\n    then 1\n    else 2"
         "LHsEqn \"g\" (fromList []) (LHsIf (LHsBin LHsEq (LHsCon \"True\") (LHsCon \"False\")) (LHsInt 1) (LHsInt 2))"
-    , source
-        "prefix arithmetic operator"
-        "h = (+) a b"
-        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsAdd) (LHsVar \"a\")) (LHsVar \"b\"))"
-    , source
-        "prefix logic operator"
-        "h = (||) a b"
-        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsOr) (LHsVar \"a\")) (LHsVar \"b\"))"
-    , source
-        "prefix relational operator"
-        "h = (<) a b"
-        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsLt) (LHsVar \"a\")) (LHsVar \"b\"))"
-    , source
-        "prefix equality operator"
-        "h = (==) a b"
-        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsEq) (LHsVar \"a\")) (LHsVar \"b\"))"
     ]
 
 d :: [Source]
@@ -336,6 +320,22 @@ fb =
         "function application operator binds weaker than logic operators"
         "f = g $ h || i"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsFunApp (LHsVar \"g\") (LHsBin LHsOr (LHsVar \"h\") (LHsVar \"i\")))"
+    , source
+        "prefix arithmetic operator"
+        "h = (+) a b"
+        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsAdd) (LHsVar \"a\")) (LHsVar \"b\"))"
+    , source
+        "prefix logic operator"
+        "h = (||) a b"
+        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsOr) (LHsVar \"a\")) (LHsVar \"b\"))"
+    , source
+        "prefix relational operator"
+        "h = (<) a b"
+        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsLt) (LHsVar \"a\")) (LHsVar \"b\"))"
+    , source
+        "prefix equality operator"
+        "h = (==) a b"
+        "LHsEqn \"h\" (fromList []) (LHsApp (LHsApp (LHsPre LHsEq) (LHsVar \"a\")) (LHsVar \"b\"))"
     ]
 
 fd :: [Source]

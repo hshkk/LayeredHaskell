@@ -92,7 +92,6 @@ Expr :: { L LHsExpr }
 
 Atom :: { L LHsExpr }
     : int         { int $1 }
-    | '(' Bin ')' { L ($1 >< $3) (LHsPre $2) }
 
 Bin :: { LHsBin }
     : '+'         { LHsAdd }
