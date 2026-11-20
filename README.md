@@ -1,5 +1,5 @@
 # Layered Haskell
-[![tests](https://img.shields.io/github/actions/workflow/status/hshkk/LayeredHaskell/ci.yml?branch=main&label=tests)](https://github.com/hshkk/LayeredHaskell/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/hshkk/LayeredHaskell/ci.yml?branch=main&label=tests)](https://github.com/hshkk/LayeredHaskell/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/badge/docs-Haddock-blue)](https://hshkk.github.io/LayeredHaskell/)
 
 **Layered Haskell** is a _layered_ functional language in which users can enable and disable various language features at will. 
@@ -13,9 +13,15 @@ The modularity of Layered Haskell enables language variants that support a gentl
 
 # Installation
 
+Download the appropriate archive from the latest release. It should contain several executable files that you can run directly from the terminal.
+
+If an executable fails to run, your machine may not be compatible with the operating system environments used to build the binaries on GitHub's servers. **Solution forthcoming.**
+
+## Local Development
+
 Clone the repository and execute `cd LayeredHaskell`.
 
-It is _not_ recommended to use `cabal install` on either `LayeredHaskell` or `LayeredHaskell-make`, as the program as it exists will likely not function as intended, if at all. One should use `cabal run` as the [Usage](#usage) section describes, or write a (local) command alias. This may be changed in the future.
+It is _not_ recommended to use `cabal install` on either `LayeredHaskell` or `LayeredHaskell-make`, as the program as it exists will likely not function as intended, if at all. One should use `cabal run` as the [Usage](#usage) section describes, or write a (local) command alias.
 
 # Usage
 
