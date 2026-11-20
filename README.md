@@ -13,19 +13,56 @@ The modularity of Layered Haskell enables language variants that support a gentl
 
 # Installation
 
-Download the appropriate archive from the latest release. It should contain several executable files that you can run directly from the terminal.
+Download the archive corresponding to your operating system from the [latest release](https://github.com/hshkk/LayeredHaskell/releases). It should contain several executable files that you can run directly from the terminal.
 
-If an executable fails to run, your machine may not be compatible with the operating system environments used to build the binaries on GitHub's servers. **Solution forthcoming.**
+|Archive|Operating System|
+|---|---|
+|`LayeredHaskell-linux.tar.gz`|Linux (Ubuntu)|
+|`LayeredHaskell-win.zip`|Windows|
+|`LayeredHaskell-osx.tar.gz`|macOS|
+
+If you do not see your operating system, you may have to follow the instructions in the [Building From Source](#building-from-source) section to build the binaries yourself.
+
+## Building From Source
+
+If the executable fails to run, your machine may not be compatible with the operating system environments used to build the binaries on GitHub's servers. If so, you will have to build it yourself.
+
+1. You'll first have to install [GHC](https://www.haskell.org/ghc/) (the Glasgow Haskell Compiler) and [Cabal](https://www.haskell.org/cabal/) (a package manager for Haskell libraries and programs). The easiest way to do this is **GHCup**, a general-purpose installer for Haskell tools. Follow the instructions at [https://www.haskell.org/ghcup/](https://www.haskell.org/ghcup/), then install and select compatible versions as follows.
+```
+ghcup install ghc 9.6.7
+ghcup set ghc 9.6.7
+ghcup install cabal 3.14.2.0
+ghcup set cabal 3.14.2.0
+```
+2. Verify the installation by executing the following, which should print `9.6.7` and `3.14.2.0` respectively.
+```
+ghc --version
+cabal --version
+```
+
+3. Execute the following commands. `scripts/Build.hs` is a script for generating the necessary binaries. Note that the first run may take a while, since Cabal has to download and compile various dependencies. 
+```
+git clone https://github.com/hshkk/LayeredHaskell.git
+cd LayeredHaskell
+runghc scripts/Build.hs
+```
+
+4. After the script finishes its execution, check `dist/LayeredHaskell-<os>`, where `<os>` is the name of your operating system. (This will in most cases match the names indicated at the beginning of the [Installation](#installation) section.) Inside you will find a set of executables generated specifically for your machine.
 
 ## Local Development
 
-Clone the repository and execute `cd LayeredHaskell`.
+Execute the following commands.
+```
+git clone https://github.com/hshkk/LayeredHaskell.git
+cd LayeredHaskell
+```
+Reference the [Usage](#usage) section for information on what commands are available.
 
-It is _not_ recommended to use `cabal install` on either `LayeredHaskell` or `LayeredHaskell-make`, as the program as it exists will likely not function as intended, if at all. One should use `cabal run` as the [Usage](#usage) section describes, or write a (local) command alias.
+Note that it is _not_ recommended to use `cabal install` on either `LayeredHaskell` or `LayeredHaskell-make`, as the program as it exists will likely not function as intended, if at all. One should use `cabal run` as the [Usage](#usage) section describes, or write a (local) command alias.
 
 # Usage
 
-This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for Haskell libraries and programs. The current project has been tested against version 3.14.2.0. If a newer version is already installed, one may try passing the `--allow-newer` flag into the `cabal` executable.
+This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for Haskell libraries and programs. The current project has been tested against version 3.14.2.0. If a newer version is already installed, one may try passing the `--allow-newer` flag into the `cabal` executable, but this may not always work.
 
 Some useful commands are as follows.
 
@@ -33,7 +70,7 @@ Some useful commands are as follows.
 | -------- | ------- |
 | `cabal update`  | Refreshes the local list of known packages from [Hackage](https://hackage.haskell.org/), the central package archive for Haskell. |
 | `cabal build` | Compiles libraries and executables within the current project. |
-| `cabal run`  | Compiles and executes the project's main executable. |
+| `cabal run`  | Compiles and executes the project's main executable. (See [Enabling Features](#enabling-features) and [Execution](#execution).) |
 
 ## Enabling Features
 
@@ -67,7 +104,7 @@ For a list of all valid feature combinations, execute the following.
 cabal run LayeredHaskell-make -- ls c
 ```
 
-### Additional Information
+### Additional information
 
 While these commands should cover most needs during development, for a complete list, execute the `help` command as follows.
 ```

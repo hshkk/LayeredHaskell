@@ -7,36 +7,12 @@ on:
 permissions:
   contents: write
 
-env:
-  # <layer name>|<features>
-  # WARNING: Don't put spaces around the | character.
-  LAYERS: |
-    LH0|B
-    LH1|B D
-    LH2|P B L
-  # TODO: These are placeholders. Later on, we will decide on what each layer should provide.
-
 jobs:
   build:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            name: linux
-            ext: ""
-            archive: tar.gz
-          - os: windows-latest
-            name: win
-            ext: ".exe"
-            archive: zip
-          - os: macos-latest
-            name: osx
-            ext: ""
-            archive: tar.gz
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      FOLDER: LayeredHaskell-${{ matrix.name }}
-      ARCHIVE: LayeredHaskell-${{ matrix.name }}.${{ matrix.archive }}
 
     steps:
     - uses: actions/checkout@v4
@@ -45,30 +21,27 @@ jobs:
         ghc-version: '9.6.7'
         cabal-version: '3.12.1.0'
 
-    - name: Build all layers
+    - name: Build layers
       shell: bash
       run: |
         cabal update
-        mkdir -p "dist/$FOLDER"
-        while IFS='|' read -r name features; do
-          [ -z "$name" ] && continue
-          cabal run LayeredHaskell-make -- set $features < /dev/null
-          cabal build exe:LayeredHaskell < /dev/null
-          cp "$(cabal list-bin exe:LayeredHaskell)" "dist/$FOLDER/$name${{ matrix.ext }}"
-        done <<< "$LAYERS"
+        runghc scripts/Build.hs
 
-    - name: Create archive
+    - name: Create archives
       shell: bash
       run: |
+        mkdir -p dist/archive
         cd dist
-        if [ "${{ matrix.archive }}" = "zip" ]; then
-          7z a "../$ARCHIVE" "$FOLDER"
-        else
-          tar -czf "../$ARCHIVE" "$FOLDER"
-        fi
+        for folder in LayeredHaskell-*; do
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "archive/$folder.zip" "$folder"
+          else
+            tar -czf "archive/$folder.tar.gz" "$folder"
+          fi
+        done
 
     - name: Attach to release
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-      run: gh release upload "${{ github.event.release.tag_name }}" "$ARCHIVE"
+      run: gh release upload "${{ github.event.release.tag_name }}" dist/archive/*
