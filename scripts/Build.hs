@@ -39,7 +39,8 @@ layers =
 
 main :: IO ()
 main = do
-    -- First, we ask GHC which operating system the script is being executed on. We require the following.
+    -- Step 1: 
+    -- Ask GHC which operating system the script is being executed on. We require the following.
     --     * A short name to be used in the name of the output folder.
     --     * The file extension that executables have on this system.
     --
@@ -55,30 +56,37 @@ main = do
         "dragonfly" -> pure ("dragonfly", ""   )
         other       -> die (errLabel $ "Unsupported operating system: " ++ other)
 
-    -- We create a directory afterwards, or clear it if a directory with the same name already exists.
+    -- Step 2: 
+    -- Create a directory afterwards, or clear it if a directory with the same name already exists.
     -- This prevents previously generated binaries from being retained.
     let folder = "dist" </> ("LayeredHaskell-" ++ osName)
     exists <- doesDirectoryExist folder
     when exists (removeDirectoryRecursive folder)
     createDirectoryIfMissing True folder
 
-    -- We then build each layer in turn.
+    -- Step 3:
+    -- Then, build each layer in turn.
     forM_ layers $ \(name, features) -> do
-        -- Step 1: Enable the layer's features.
-        --         This runs LayeredHaskell-make, which generates the source files for that combination of features.
+        -- Step 3.1: 
+        -- Enable the layer's features.
+        -- This runs LayeredHaskell-make, which generates the source files for that combination of features.
         run "cabal" (["run", "LayeredHaskell-make", "--", "set"] ++ features)
 
-        -- Step 2: Build the LayeredHaskell binary with those features.
+        -- Step 3.2: 
+        -- Build the LayeredHaskell binary with those features.
         run "cabal" ["build", "exe:LayeredHaskell"]
 
-        -- Step 3: Retrieve the location of the binary and copy it into the output folder.
+        -- Step 3.3: 
+        -- Retrieve the location of the binary and copy it into the output folder.
         binary <- fmap trim (readProcess "cabal" ["list-bin", "exe:LayeredHaskell"] "")
         copyFile binary (folder </> (name <.> ext))
 
-        -- Step 4: Print a helpful message.
+        -- Step 3.4: 
+        -- Print a helpful message.
         putStrLn $ infoLabel ("Successfully generated binary: " ++ name <.> ext)
     
-    -- Prints a series of messages to indicate that the script has completed its execution.
+    -- Step 4:
+    -- Finally, print a series of messages to indicate that the script has completed its execution.
     putStrLn $ infoLabel "Done!"
     putStrLn $ hintLabel ("Binaries were written to: " ++ folder)
     where

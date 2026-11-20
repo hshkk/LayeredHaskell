@@ -8,6 +8,7 @@ This project uses [Cabal](https://www.haskell.org/cabal/), a package manager for
 
 | Command  | What it does |
 | -------- | ------- |
+|`cabal --version`|Prints the Cabal version. **This project has been tested against Cabal v3.12.1.0.**|
 | `cabal update`  | Refreshes the local list of known packages from [Hackage](https://hackage.haskell.org/), the central package archive for Haskell. |
 | `cabal build` | Compiles libraries and executables within the current project. |
 | `cabal run`  | Compiles and executes the project's main executable. |
