@@ -8,8 +8,6 @@ permissions:
   contents: write
 
 env:
-  FOLDER: LayeredHaskell-${{ matrix.name }}
-  ARCHIVE: LayeredHaskell-${{ matrix.name }}.${{ matrix.archive }}
   # <layer name>|<features>
   # WARNING: Don't put spaces around the | character.
   LAYERS: |
@@ -37,6 +35,7 @@ jobs:
             archive: tar.gz
     runs-on: ${{ matrix.os }}
     env:
+      FOLDER: LayeredHaskell-${{ matrix.name }}
       ARCHIVE: LayeredHaskell-${{ matrix.name }}.${{ matrix.archive }}
 
     steps:
