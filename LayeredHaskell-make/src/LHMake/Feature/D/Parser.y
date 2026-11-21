@@ -78,7 +78,7 @@ Decl :: { L LHsDecl }
 -------------------------------------------------------------------------------
 -- Patterns
 
-Pat :: { L LHsPat }
+PatCon :: { L LHsPat }
     : con PatApp   { L ($1 >< $2) (LHsPCon (ident $1) (un $2)) }
 
 PatAtom :: { L LHsPat }

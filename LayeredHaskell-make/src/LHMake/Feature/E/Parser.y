@@ -112,6 +112,9 @@ Pats :: { Seq (L LHsPat) }
     : {- ε -}               { Seq.empty }
 
 Pat :: { L LHsPat }
+    : PatCon                { $1 }
+
+PatCon :: { L LHsPat }
     : PatAtom               { $1 }
 
 PatApp :: { L (Seq (L LHsPat)) }

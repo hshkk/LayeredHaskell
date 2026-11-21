@@ -109,6 +109,9 @@ Bin :: { LHsBin }
 -------------------------------------------------------------------------------
 -- Patterns
 
+PatCon :: { L LHsPat }
+    : '-' int     { pneg $1 $2 }
+
 PatAtom :: { L LHsPat }
     : int         { pint $1 }
     -- This rule is more general than it needs to be due to an
@@ -137,4 +140,11 @@ pint :: LHsLexeme -> L LHsPat
 pint (LHsLexeme sp (LHsTkInt n)) = L sp (LHsPInt n)
 -- The below case will never happen.
 pint _ = undefined
+
+-- | Parses a negative integer as a pattern.
+pneg :: LHsLexeme -> LHsLexeme -> L LHsPat
+pneg (LHsLexeme sp1 _) (LHsLexeme sp2 (LHsTkInt n)) 
+    = L (sp1 >< sp2) (LHsPInt (negate n))
+-- The below case will never happen.
+pneg _ _ = undefined
 }
