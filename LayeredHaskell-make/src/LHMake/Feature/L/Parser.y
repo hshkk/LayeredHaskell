@@ -81,7 +81,7 @@ CommaExprs :: { Seq (L LHsExpr) }
 -- Patterns
 
 Pat :: { L LHsPat }
-    : PatAtom ':' Pat                         { L ($1 >< $3) (LHsPListCons $1 $3) }
+    : PatCon ':' Pat                          { L ($1 >< $3) (LHsPListCons $1 $3) }
 
 PatAtom :: { L LHsPat }
     : '[' ListPat ']'                         { L ($1 >< $3) (LHsPList $2) }
