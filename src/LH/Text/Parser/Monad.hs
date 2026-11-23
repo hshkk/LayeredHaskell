@@ -176,8 +176,8 @@ data LHsTextError
 instance LHsError LHsTextError where
     buildError file (LexicalError pos bad) =
         errataSimple
-            (Just ("Lexical error: unexpected `" <> bad <> "`"))
-            (underline file (pos +> Text.length bad) "this is not a valid token")
+            (Just ("Unexpected '" <> bad <> "'"))
+            (underline file (pos +> Text.length bad) "not sure how to interpret this symbol")
             Nothing
     buildError file (UnclosedComment pos) =
         errataSimple
@@ -195,4 +195,3 @@ instance LHsError LHsTextError where
                 LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
                 LHsTkVClose -> "the block ends here, but something before it is unfinished"
                 _           -> "this was not expected here"
-

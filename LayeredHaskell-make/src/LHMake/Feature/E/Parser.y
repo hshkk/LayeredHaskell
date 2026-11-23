@@ -149,7 +149,6 @@ parseProgram = runLHsParser (beginProgram >> program)
 -- | Reports a token that the parser did not expect.
 parseError :: LHsLexeme -> LHsParser a
 parseError (LHsLexeme sp tok) = do
-    end <- fmap aiPos getInput
     throwError (ParseError sp tok)
 
 -- | Parses an identifier.
