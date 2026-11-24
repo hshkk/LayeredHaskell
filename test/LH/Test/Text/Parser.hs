@@ -293,6 +293,10 @@ fb =
         "fac 0 = 1"
         "LHsEqn \"fac\" (fromList [LHsPInt 0]) (LHsInt 1)"
     , source
+        "function definition with negative integer pattern matching"
+        "negate (-1) = 1"
+        "LHsEqn \"negate\" (fromList [LHsPInt (-1)]) (LHsInt 1)"
+    , source
         "recursive function definition with an integer binary operation and function application"
         "fac n = n * fac (n-1)"
         "LHsEqn \"fac\" (fromList [LHsPVar \"n\"]) (LHsBin LHsMul (LHsVar \"n\") (LHsApp (LHsVar \"fac\") (LHsBin LHsSub (LHsVar \"n\") (LHsInt 1))))"
@@ -624,6 +628,10 @@ lb =
         "arithmetic operators bind stronger than cons"
         "f = 1+2:3*4:[] == [7]"
         "LHsEqn \"f\" (fromList []) (LHsBin LHsEq (LHsBin LHsListCons (LHsBin LHsAdd (LHsInt 1) (LHsInt 2)) (LHsBin LHsListCons (LHsBin LHsMul (LHsInt 3) (LHsInt 4)) (LHsList (fromList [])))) (LHsList (fromList [LHsInt 7])))"
+    , source
+        "pattern matching with cons and a negative integer"
+        "f (-1:n) = n"
+        "LHsEqn \"f\" (fromList [LHsPListCons (LHsPInt (-1)) (LHsPVar \"n\")]) (LHsVar \"n\")"
     ]
 
 pl :: [Source]
