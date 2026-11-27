@@ -13,7 +13,9 @@ This module provides definitions for tokens.
 -}
 module LH.Text.Token (
     -- * Tokens
-    LHsToken (..)
+    LHsToken (..),
+    -- ** Properties
+    isKeyword, isOperator, isVirtual
     ) where
 
 import Data.Text (Text)
@@ -90,3 +92,43 @@ data LHsToken
     -- End-of-file
     | LHsTkEOF             -- ^ The token indicating end-of-file (EOF).
     deriving (Eq, Show)
+
+-- | Is a given token a keyword?
+isKeyword :: LHsToken -> Bool
+isKeyword LHsTkLet  = True
+isKeyword LHsTkIn   = True
+isKeyword LHsTkCase = True
+isKeyword LHsTkOf   = True
+isKeyword LHsTkData = True
+isKeyword LHsTkType = True
+isKeyword LHsTkIf   = True
+isKeyword LHsTkThen = True
+isKeyword LHsTkElse = True
+isKeyword _         = False
+
+-- | Is a given token an operator?
+isOperator :: LHsToken -> Bool
+isOperator LHsTkArrow    = True
+isOperator LHsTkPlus     = True
+isOperator LHsTkMinus    = True
+isOperator LHsTkTimes    = True
+isOperator LHsTkOr       = True
+isOperator LHsTkAnd      = True
+isOperator LHsTkLt       = True
+isOperator LHsTkGt       = True
+isOperator LHsTkLte      = True
+isOperator LHsTkGte      = True
+isOperator LHsTkEqEq     = True
+isOperator LHsTkNotEq    = True
+isOperator LHsTkDot      = True
+isOperator LHsTkDollar   = True
+isOperator LHsTkColon    = True
+isOperator LHsTkPlusPlus = True
+isOperator LHsTkExclExcl = True
+isOperator _             = False
+
+-- | Is a given token virtual? See 'LHsTkVSemi' and 'LHsTkVClose'.
+isVirtual :: LHsToken -> Bool
+isVirtual LHsTkVSemi  = True
+isVirtual LHsTkVClose = True
+isVirtual _           = False

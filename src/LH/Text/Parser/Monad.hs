@@ -29,12 +29,12 @@ module LH.Text.Parser.Monad (
     LHsTextError (..)
     ) where
 
-import Control.Monad.Except       (MonadError)
+import Control.Monad.Except (MonadError)
 import Control.Monad.State.Strict 
     (MonadState, gets, modify,
      StateT, evalStateT)
 
-import Data.Char  (ord)
+import Data.Char  (isAscii, ord)
 import Data.Maybe (listToMaybe)
 import Data.Text  (Text)
 import Data.Word  (Word8)
@@ -45,9 +45,12 @@ import qualified Data.ByteString    as Byte
 import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 
-import LH.Data.Error  (LHsError (buildError), underline, (+>))
+import LH.Data.Error  
+    (LHsError (buildError), 
+     errorCode, possibleFix, reason, 
+     (<+>), underline, (+>))
 import LH.Data.SrcLoc (LHsPos (..), LHsSpan (..))
-import LH.Text.Token  (LHsToken (..))
+import LH.Text.Token  (LHsToken (..), isKeyword, isOperator)
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
@@ -115,9 +118,14 @@ runLHsParser (LHsParser m) src =
 
 -- | The parser state, which keeps track of the current input and two stacks.
 data LHsState = LHsState
-    { stInput  :: !AlexInput    -- ^ The current input.
-    , stStcds  :: [LHsStcd]     -- ^ A stack of startcodes. When empty, the lexer is in the default startcode @0@.
-    , stLayout :: [Int]         -- ^ A stack of the columns of open layout blocks.
+    { stInput  :: !AlexInput    
+        -- ^ The current input.
+    , stStcds  :: [LHsStcd]     
+        -- ^ A stack of startcodes. When empty, the lexer is in the default startcode @0@.
+    , stLayout :: [Int]         
+        -- ^ A stack of the columns of open layout blocks.
+    --, stNVirt  :: !(Maybe LHsSpan)
+        -- ^ The span of the last seen non-virtual token.
     }
 
 -- | Retrieves the current input. 
@@ -173,20 +181,49 @@ data LHsTextError
                                             --   starts and ends in the source.
     deriving (Eq, Show)
 
+-- | The error code prefix for text-related errors.
+errorCodePrefix :: Text
+errorCodePrefix = "T"
+
+-- | Creates an error code for text-related errors.
+--
+--   Lexical errors (00-09)
+--       00: Generic lexical error
+--       01: Unclosed comment
+--   Parse errors   (10-19)
+--       10: Generic syntax error
+--       11: Unavailable keyword
+--       12: Unavailable binary operator
+errorCodeWith :: LHsTextError -> Text
+errorCodeWith (LexicalError _ _)  = errorCode errorCodePrefix "00"
+errorCodeWith (UnclosedComment _) = errorCode errorCodePrefix "01"
+errorCodeWith (ParseError _ bad)
+    | isKeyword  bad = errorCode errorCodePrefix "11"
+    | isOperator bad = errorCode errorCodePrefix "12"
+    | otherwise      = errorCode errorCodePrefix "10"
+
 instance LHsError LHsTextError where
-    buildError file (LexicalError pos bad) =
+    buildError file err@(LexicalError pos bad) =
         errataSimple
-            (Just ("Unexpected '" <> bad <> "'"))
+            (Just $ errorCodeWith err <+> "Unexpected '" <> bad <> "'")
             (underline file (pos +> Text.length bad) "not sure how to interpret this symbol")
-            Nothing
-    buildError file (UnclosedComment pos) =
+            unicodeHint
+            where
+                unicodeHint
+                    | Text.any (not . isAscii) bad =
+                        Just $ possibleFix "use only ASCII characters in program text\n"
+                            <> reason "outside of comments, Layered Haskell does not support Unicode symbols"
+                    | otherwise = Nothing
+    buildError file err@(UnclosedComment pos) =
         errataSimple
-            (Just "Unclosed comment")
+            (Just $ errorCodeWith err <+> "Unclosed comment")
             (underline file (pos +> 2) "this comment is never closed")
-            Nothing
-    buildError file (ParseError (LHsSpan start end) bad) =
+            commentHint
+        where
+            commentHint = Just $ possibleFix "add '-}' somewhere after '{-' to close the comment"
+    buildError file err@(ParseError (LHsSpan start end) bad) =
         errataSimple
-            (Just "Parse error")
+            (Just $ errorCodeWith err <+> "Syntax error")
             -- Virtual tokens have an empty span, so we underline at least one character.
             (underline file (LHsSpan start (end { posCol = max (posCol end) (posCol start + 1) })) label)
             Nothing

@@ -18,8 +18,10 @@ module LH.Data.Error (
     LHsError (..),
     -- ** Reporting multiple errors
     LHsMaxError (..),
+    -- ** Formatting labels and messages
+    errorCode, possibleFix, reason,
     -- ** Formatting errors
-    underline, (+>)
+    (<+>), underline, (+>)
     ) where
 
 import Data.Text  (Text)
@@ -87,6 +89,26 @@ instance LHsError a => LHsError (LHsMaxError a) where
                 then Just $ "\n...and " <> Text.pack (show (m - n)) <> " more errors"
                 else Nothing 
             }
+
+-- | Formats an error code with a prefix.
+errorCode :: Text -- ^ A prefix, typically one or two characters.
+          -> Text -- ^ A uniquely assigned error code, typically two integers.
+          -> Text
+errorCode pfx code = "\ESC[1;31m[" <> pfx <> code <> "]\ESC[0m"
+
+-- | Formats a possible fix.
+possibleFix :: Text -> Text
+possibleFix s = "\ESC[34mpossible fix: " <> s <> "\ESC[0m"
+
+-- | Formats a reason for an error.
+reason :: Text -> Text
+reason s = "reason: " <> s
+
+infixr 6 <+>
+
+-- | Concatenates two 'Text' values together with a space in between.
+(<+>) :: Text -> Text -> Text
+a <+> b = a <> " " <> b
 
 -- | Underlines a __single-line__ span alongside a label.
 underline :: FilePath    -- ^ The filepath of the source text.
