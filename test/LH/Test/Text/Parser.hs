@@ -2,7 +2,7 @@
 -- This module provides a test suite for Layered Haskell's parsers.
 module LH.Test.Text.Parser (spec) where
 
-import Control.Monad       (forM_, unless, void)
+import Control.Monad       (forM, forM_, unless, void)
 import System.Directory
 import System.Exit         (ExitCode (..))
 import System.FilePath
@@ -49,19 +49,25 @@ build = void (run "cabal" ["build", "lib:LayeredHaskell"])
 -- The tests then operate on a temporary directory named @LayeredHaskell-<hex string>@.
 withBuild :: [FeatureName] -> (FilePath -> IO ()) -> IO ()
 withBuild args tests = withSystemTempDirectory "LayeredHaskell-test" $ \dir -> do
-    let featureDir = dir </> "LH" </> "Feature"
-    -- Create ../LH/Feature/, which will then receive the superimposed files.
-    createDirectoryIfMissing True featureDir
-    superimpose args (addTrailingPathSeparator featureDir)
-    files <- listDirectory featureDir
+    superimpose args dir
+    files <- listFilesRecursive dir
     -- For each Happy file, we execute Happy to produce a set of Haskell modules.
     forM_ [file | file <- files, takeExtension file == ".y"] $ \y ->
-        run "happy" [featureDir </> y, "-g", "-a", "-c", "-o", featureDir </> replaceExtension y "hs"]
+        run "happy" [dir </> y, "-g", "-a", "-c", "-o", dir </> replaceExtension y "hs"]
     -- Then, we can run cabal on the driver file.
     _ <- run "cabal"
         [ "exec", "--", "ghc", "-O0", "-package", "LayeredHaskell", "-i" ++ dir, "-outputdir", dir </> "build"
         , "-o", dir </> "driver" <.> exeExtension, "test/LH/Test/Text/Parser/Driver.hs" ]
     tests dir
+    where
+        -- Lists every file under a folder, including files inside subfolders.
+        listFilesRecursive :: FilePath -> IO [FilePath]
+        listFilesRecursive root = do
+            entries <- listDirectory root
+            fmap concat $ forM entries $ \entry -> do
+                let path = root </> entry
+                isDir <- doesDirectoryExist path
+                if isDir then listFilesRecursive path else return [path]
 
 -- Runs a program and returns what the program prints.
 -- The test fails if the program exited with an error.

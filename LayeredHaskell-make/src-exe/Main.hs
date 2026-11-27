@@ -17,8 +17,8 @@ features :: FilePath
 features = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> "Features"
 
 -- | The destination directory for generated source files.
-dir :: FilePath
-dir = "src" </> "LH" </> "Feature"
+src :: FilePath
+src = "src"
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
@@ -30,7 +30,7 @@ main = do
     case args of
         [] -> do
             names <- getNames
-            superimpose names dir
+            superimpose names src
         -- General information
         ["help"]    -> help
         ["version"] -> version
@@ -55,7 +55,7 @@ main = do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
             putStrLn $ warnLabel "Proceeding as if there were none..."
             names <- getNames
-            superimpose names dir
+            superimpose names src
             putStrLn $ hintLabel "For a list of all commands, pass 'help' as an argument to LayeredHaskell-make."
     where
         getNames = do
