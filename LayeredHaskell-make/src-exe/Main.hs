@@ -46,7 +46,7 @@ main = do
         "set":names
             | null names -> do
                 putStrLn $ errLabel "One or more features must be enabled."
-                putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
+                putStrLn $ hintLabel "For information on `set', pass `help' as an argument to LayeredHaskell-make."
             | otherwise -> do
                 writeFile features (unlines names)
                 putStrLn $ infoLabel "Enabled just now: " ++ unwords names 
@@ -56,7 +56,7 @@ main = do
             putStrLn $ warnLabel "Proceeding as if there were none..."
             names <- getNames
             superimpose names src
-            putStrLn $ hintLabel "For a list of all commands, pass 'help' as an argument to LayeredHaskell-make."
+            putStrLn $ hintLabel "For a list of all commands, pass `help' as an argument to LayeredHaskell-make."
     where
         getNames = do
             args <- readFile features
@@ -73,7 +73,7 @@ help = do
     putStrLn "    ...    = c     :  ...all non-redundant feature combinations"
     putStrLn "    ...    = d     :  ...all feature dependencies and implications"
     putStrLn "set <args> : Enable a set of features"
-    putStrLn "     ....  = Any feature combination from 'ls c', separated by spaces"
+    putStrLn "     ....  = Any feature combination from `ls c', separated by spaces"
     putStrLn "show       : The set of currently enabled features"
     putStrLn "version    : The version"
 

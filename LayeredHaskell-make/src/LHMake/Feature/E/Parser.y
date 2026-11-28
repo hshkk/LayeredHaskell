@@ -19,12 +19,14 @@ module LH.Feature.Parser (
     ) where
 
 import Control.Monad.Except (throwError)
+import Control.Monad.State.Strict (get)
 
 import Data.Sequence (Seq, (|>), (<|))
 import Data.Text     (Text)
 
 import qualified Data.Sequence as Seq
 
+import LH.Data.Error (quotes, (<+>))
 import LH.Data.SrcLoc
 import LH.Feature.AbsSyn
 import LH.Text.Lexer
@@ -149,7 +151,21 @@ parseProgram = runLHsParser (beginProgram >> program)
 -- | Reports a token that the parser did not expect.
 parseError :: LHsLexeme -> LHsParser a
 parseError (LHsLexeme sp tok) = do
-    throwError (ParseError sp tok)
+    st <- get
+    let brs = stBrack st
+    let nv  = stNVirt st
+    throwError (ParseError sp tok (prev tok brs nv))
+    where
+        -- Finds a previous place in the source worth pointing at, and adds a label.
+        prev :: LHsToken -> [LHsBracket] -> Maybe LHsSpan -> Maybe (LHsSpan, Text)
+        prev tok brs nv
+            | not (isVirtual tok)          = Nothing
+            -- If a bracket is unclosed...
+            | LHsBracket bty sp : _ <- brs = 
+                Just (sp, "this" <+> quotes (pprOpenBracketType bty) <+> "is never closed")
+            -- If a definition is incomplete...
+            | isVirtual tok, Just sp <- nv = Just (sp, "this definition is incomplete from here")
+            | otherwise                    = Nothing
 
 -- | Parses an identifier.
 ident :: LHsLexeme -> Id
