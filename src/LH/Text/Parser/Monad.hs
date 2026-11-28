@@ -13,23 +13,22 @@ This module provides the parser monad for Layered Haskell.
 Consequently, it includes definitions for a custom Alex wrapper and a representation of errors and state.
 -}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
 module LH.Text.Parser.Monad (
     -- * A wrapper for Alex
     AlexInput (..), alexGetByte, alexInputPrevChar,
     -- * The parser monad
     LHsParser (..), runLHsParser,
     -- ** State
-    LHsState (..), getInput, setInput,
+    LHsState (..), getInput, setInput, updateWithToken,
     -- ** Startcodes
     LHsStcd (..), getStcd, pushStcd, popStcd,
     -- ** Layout
     getInnermostLayout, pushLayout, popLayout,
-    -- ** Errors
-    LHsTextError (..)
+    -- ** Brackets
+    LHsBracket (..), LHsBracketType (..), openBracketType, closeBracketType, pprOpenBracketType
     ) where
 
-import Control.Monad.Except       (MonadError)
+import Control.Monad.Except (MonadError)
 import Control.Monad.State.Strict 
     (MonadState, gets, modify,
      StateT, evalStateT)
@@ -39,15 +38,16 @@ import Data.Maybe (listToMaybe)
 import Data.Text  (Text)
 import Data.Word  (Word8)
 
-import Errata
-
 import qualified Data.ByteString    as Byte
 import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 
-import LH.Data.Error  (LHsError (buildError), underline, (+>))
-import LH.Data.SrcLoc (LHsPos (..), LHsSpan (..))
-import LH.Text.Token  (LHsToken (..))
+import LH.Data.SrcLoc 
+    (LHsPos (..), LHsSpan (..))
+import LH.Feature.Parser.Error 
+    (LHsTextError)
+import LH.Text.Token  
+    (LHsToken (..), isVirtual)
 
 -------------------------------------------------------------------------------
 -- Definitions for an Alex wrapper
@@ -103,7 +103,7 @@ newtype LHsParser a = LHsParser (StateT LHsState (Either LHsTextError) a)
 -- | Runs a 'LHsParser' against an input 'Text'.
 runLHsParser :: LHsParser a -> Text -> Either LHsTextError a
 runLHsParser (LHsParser m) src = 
-    evalStateT m (LHsState (AlexInput initPos initPrev initBytes src) initStack initStack)
+    evalStateT m (LHsState (AlexInput initPos initPrev initBytes src) initStack initStack initStack Nothing)
     where
         initPos   = LHsPos 1 1
         initPrev  = '\n'
@@ -115,9 +115,20 @@ runLHsParser (LHsParser m) src =
 
 -- | The parser state, which keeps track of the current input and two stacks.
 data LHsState = LHsState
-    { stInput  :: !AlexInput    -- ^ The current input.
-    , stStcds  :: [LHsStcd]     -- ^ A stack of startcodes. When empty, the lexer is in the default startcode @0@.
-    , stLayout :: [Int]         -- ^ A stack of the columns of open layout blocks.
+    { stInput  :: !AlexInput    
+        -- ^ The current input.
+    , stStcds  :: [LHsStcd]     
+        -- ^ A stack of startcodes. When empty, the lexer is in the default startcode @0@.
+    , stLayout :: [Int]         
+        -- ^ A stack of the columns of open layout blocks.
+    , stBrack  :: [LHsBracket]
+        -- ^ A stack of unclosed brackets. 
+        --
+        --   'stBrack' is used for reporting better error messages related to unclosed brackets.
+    , stNVirt  :: !(Maybe LHsSpan)
+        -- ^ The span of the last seen non-virtual token.
+        --
+        --   'stNVirt' is used for reporting better error messages related to incomplete definitions.
     }
 
 -- | Retrieves the current input. 
@@ -127,6 +138,27 @@ getInput = gets stInput
 -- | Sets the current input. 
 setInput :: AlexInput -> LHsParser ()
 setInput inp = modify (\st -> st { stInput = inp })
+
+-- | Updates the state after the lexer produces a token.
+--
+--   'updateWithToken' exists to update 'stNVirt' and 'stBrack', 
+--   since these are the fields of 'LHsState' that might be updated after a new token is produced.
+--   For instance, if an incoming 'LH.Text.Token.LHsRParen' closes the innermost entry in 'stBrack' 
+--   (which should be 'LH.Text.Token.LHsLParen'), 
+--   then 'updateWithToken' pops 'LH.Text.Token.LHsLParen' from the stack.
+updateWithToken :: LHsSpan -> LHsToken -> LHsParser ()
+updateWithToken sp tok = modify $ \st ->
+    -- Update stNVirt if tok is non-virtual.
+    let st' = if isVirtual tok then st else st { stNVirt = Just sp }
+    -- Update the stack of open brackets.
+    in case (openBracketType tok, closeBracketType tok, stBrack st') of
+        -- If tok opens a new bracket, push it onto the stack.
+        (Just bty, _, brs) ->
+            st' { stBrack = LHsBracket bty sp : brs }
+        -- If tok closes a bracket at the front of the stack, pop it.
+        (_, Just bty, LHsBracket bty' _ : brs') | bty == bty' ->
+            st' { stBrack = brs' }
+        _ -> st'
 
 -------------------------------------------------------------------------------
 -- Startcodes
@@ -162,36 +194,40 @@ popLayout :: LHsParser ()
 popLayout = modify (\st -> st { stLayout = drop 1 (stLayout st) })
 
 -------------------------------------------------------------------------------
--- Errors
+-- Brackets
 
--- | A text-related error emitted by the lexer or parser.
-data LHsTextError
-    = LexicalError    !LHsPos !Text         -- ^ A lexical error emitted by Alex.
-    | UnclosedComment !LHsPos               -- ^ An unclosed multi-line comment error emitted by Alex.
-    | ParseError      !LHsSpan !LHsToken    -- ^ A parse error emitted by Happy. 
-                                            --   The first argument indicates where an unexpected token 
-                                            --   starts and ends in the source.
-    deriving (Eq, Show)
+-- | A bracket type.
+data LHsBracketType 
+    = BParen    -- ^ A parenthesis.
+    | BBrack    -- ^ A square bracket.
+    deriving Eq
 
-instance LHsError LHsTextError where
-    buildError file (LexicalError pos bad) =
-        errataSimple
-            (Just ("Unexpected '" <> bad <> "'"))
-            (underline file (pos +> Text.length bad) "not sure how to interpret this symbol")
-            Nothing
-    buildError file (UnclosedComment pos) =
-        errataSimple
-            (Just "Unclosed comment")
-            (underline file (pos +> 2) "this comment is never closed")
-            Nothing
-    buildError file (ParseError (LHsSpan start end) bad) =
-        errataSimple
-            (Just "Parse error")
-            -- Virtual tokens have an empty span, so we underline at least one character.
-            (underline file (LHsSpan start (end { posCol = max (posCol end) (posCol start + 1) })) label)
-            Nothing
-        where
-            label = case bad of
-                LHsTkVSemi  -> "this starts a new declaration, but the previous one is unfinished"
-                LHsTkVClose -> "the block ends here, but something before it is unfinished"
-                _           -> "this was not expected here"
+-- | Pretty-prints the opening bracket corresponding to a 'LHsBracketType'.
+pprOpenBracketType :: LHsBracketType -> Text
+pprOpenBracketType BParen = Text.pack "("
+pprOpenBracketType BBrack = Text.pack "["
+
+-- | A bracket paired with the position at which it was pushed onto the stack.
+data LHsBracket = LHsBracket !LHsBracketType !LHsSpan
+
+-- | Identifies which type of bracket a token opens, if any.
+--
+-- ==== __Example__
+--
+-- >>> openBracketType LHsTkLParen
+-- Just BParen
+openBracketType :: LHsToken -> Maybe LHsBracketType
+openBracketType LHsTkLParen = Just BParen
+openBracketType LHsTkLBrack = Just BBrack
+openBracketType _           = Nothing
+
+-- | Identifies which type of bracket a token closes, if any.
+--
+-- ==== __Example__
+--
+-- >>> closeBracketType LHsTkRParen
+-- Just BParen
+closeBracketType :: LHsToken -> Maybe LHsBracketType
+closeBracketType LHsTkRParen = Just BParen
+closeBracketType LHsTkRBrack = Just BBrack
+closeBracketType _           = Nothing

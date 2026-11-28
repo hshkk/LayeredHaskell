@@ -41,7 +41,7 @@ import Data.Maybe       (maybeToList)
 import Data.Set         (Set)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit      (die)
-import System.FilePath  (takeDirectory, (</>), (<.>))
+import System.FilePath  (pathSeparator, takeDirectory, (</>), (<.>))
 import System.IO        (readFile')
 
 import Happy.Frontend   (parseYFileContents)
@@ -141,7 +141,8 @@ type Registry = Map FeatureName Feature
 registry :: Registry
 registry = Map.fromList
     [ ("E", feature "Expressions"
-                    ["E" </> "AbsSyn" <.> "hs"]
+                    [ "E" </> "AbsSyn" <.> "hs"
+                    , "E" </> "Parser" </> "Error" <.> "hs" ]
                     (Just ("E" </> "Parser" <.> "y"))
                     None
                     None
@@ -303,8 +304,11 @@ merge reg names = case resolve reg names of
             (,) <$> mergeAll modls <*> mergeAll grams
 
 -- | Superimposes features (and implicit dependencies), and outputs files to a specified directory.
---   The directory should written in the format of, say, @src\/LH\/Feature@, 
---   since 'superimpose' simply appends it to the front of the filepath using '(</>)'. 
+--
+--   The directory should be the root of the module hierarchy (for example, @src@), 
+--   since each module is written to a filepath corresponding to its name. 
+--   For instance, the module @LH.Feature.AbsSyn@ with the argument @src@ produces the 
+--   path @src\/LH\/Feature\/AbsSyn.hs@.
 --
 --   Note that 'superimpose' will write to a file /only/ if its contents have changed.
 superimpose :: [FeatureName] -> FilePath -> IO ()
@@ -313,15 +317,15 @@ superimpose names dir = do
     (haskell, happy) <- merge registry (Set.fromList names) >>= either die return
     forM_ (Map.toList haskell) $ \(name, modl) ->
         writeIfChanged
-            (dir </> end name <.> "hs")
+            (dir </> toPath name <.> "hs")
             (H.prettyPrint modl)
     forM_ (Map.toList happy) $ \(name, gram) ->
         writeIfChanged
-            (dir </> end name <.> "y")
+            (dir </> toPath name <.> "y")
             (pprHappy gram)
     putStrLn $ infoLabel "Done!"
     where
-        end = reverse . takeWhile (/= '.') . reverse
+        toPath = map (\c -> if c == '.' then pathSeparator else c)
 
 -- | Writes to a file only if its content differs.
 --   This way, we don't need to recompile everything on every build.

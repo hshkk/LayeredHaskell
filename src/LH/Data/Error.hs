@@ -18,8 +18,10 @@ module LH.Data.Error (
     LHsError (..),
     -- ** Reporting multiple errors
     LHsMaxError (..),
+    -- ** Formatting labels and messages
+    quotes, errorCode, possibleFix, reason,
     -- ** Formatting errors
-    underline, (+>)
+    (<+>), underline, underlines, (+>)
     ) where
 
 import Data.Text  (Text)
@@ -88,6 +90,30 @@ instance LHsError a => LHsError (LHsMaxError a) where
                 else Nothing 
             }
 
+-- | Adds quotes around a 'Text' value.
+quotes :: Text -> Text
+quotes s = "`" <> s <> "'"
+
+-- | Formats an error code with a prefix.
+errorCode :: Text -- ^ A prefix, typically one or two characters.
+          -> Text -- ^ A uniquely assigned error code, typically two integers.
+          -> Text
+errorCode pfx code = "\ESC[1;31m[" <> pfx <> code <> "]\ESC[0m"
+
+-- | Formats a possible fix.
+possibleFix :: Text -> Text
+possibleFix s = "\ESC[34mpossible fix: " <> s <> "\ESC[0m"
+
+-- | Formats a reason for an error.
+reason :: Text -> Text
+reason s = "reason: " <> s
+
+infixr 6 <+>
+
+-- | Concatenates two 'Text' values together with a space in between.
+(<+>) :: Text -> Text -> Text
+a <+> b = a <> " " <> b
+
 -- | Underlines a __single-line__ span alongside a label.
 underline :: FilePath    -- ^ The filepath of the source text.
           -> LHsSpan     -- ^ The source span to underline.
@@ -101,6 +127,25 @@ underline file (LHsSpan (LHsPos l c) (LHsPos _ c')) label =
         Nothing
         (l, c, c', Just label) 
         Nothing
+
+-- | Underlines a __single-line__ span alongside a label and a previous place in the source.
+underlines :: FilePath              -- ^ The filepath of the source text.
+           -> LHsSpan               -- ^ The primary source span to underline.
+           -> Text                  -- ^ A label for the primary source span.
+           -> Maybe (LHsSpan, Text) -- ^ A previous place in the source with a label.
+           -> Block
+underlines file main mainLabel Nothing = underline file main mainLabel
+underlines file main mainLabel (Just (prev, prevLabel)) =
+    blockConnected
+        fancyRedStyle
+        fancyRedPointer
+        file
+        Nothing
+        (toPointer prev prevLabel)
+        (toPointer main mainLabel)
+        Nothing
+    where
+        toPointer (LHsSpan (LHsPos l c) (LHsPos _ c')) label = (l, c, c', Just label)
 
 infix 5 +>
 

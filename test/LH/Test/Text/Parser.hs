@@ -2,7 +2,7 @@
 -- This module provides a test suite for Layered Haskell's parsers.
 module LH.Test.Text.Parser (spec) where
 
-import Control.Monad       (forM_, unless, void)
+import Control.Monad       (forM, forM_, unless, void)
 import System.Directory
 import System.Exit         (ExitCode (..))
 import System.FilePath
@@ -49,19 +49,37 @@ build = void (run "cabal" ["build", "lib:LayeredHaskell"])
 -- The tests then operate on a temporary directory named @LayeredHaskell-<hex string>@.
 withBuild :: [FeatureName] -> (FilePath -> IO ()) -> IO ()
 withBuild args tests = withSystemTempDirectory "LayeredHaskell-test" $ \dir -> do
-    let featureDir = dir </> "LH" </> "Feature"
-    -- Create ../LH/Feature/, which will then receive the superimposed files.
-    createDirectoryIfMissing True featureDir
-    superimpose args (addTrailingPathSeparator featureDir)
-    files <- listDirectory featureDir
-    -- For each Happy file, we execute Happy to produce a set of Haskell modules.
-    forM_ [file | file <- files, takeExtension file == ".y"] $ \y ->
-        run "happy" [featureDir </> y, "-g", "-a", "-c", "-o", featureDir </> replaceExtension y "hs"]
-    -- Then, we can run cabal on the driver file.
+    superimpose args dir
+    compile "src" dir ".x" $ \inp out ->
+        run "alex" [inp, "-g", "-o", out]
+    compile dir dir ".y" $ \inp out ->
+        run "happy" [inp, "-g", "-a", "-c", "-o", out]
     _ <- run "cabal"
-        [ "exec", "--", "ghc", "-O0", "-package", "LayeredHaskell", "-i" ++ dir, "-outputdir", dir </> "build"
-        , "-o", dir </> "driver" <.> exeExtension, "test/LH/Test/Text/Parser/Driver.hs" ]
+        [ "exec", "--", "ghc", "-O0", "-hide-package", "LayeredHaskell"
+        , "-i" ++ dir, "-isrc", "-outputdir", dir </> "build"
+        , "-o", dir </> "driver" <.> exeExtension
+        , "test/LH/Test/Text/Parser/Driver.hs" ]
     tests dir
+    where
+        -- Finds every file with the given extension under `from', then applies a
+        -- function `k' to each file. (This is used for compiling Alex and Happy files.) 
+        -- The output is a Haskell file at the same relative path under `to'.
+        compile :: FilePath -> FilePath -> String -> (FilePath -> FilePath -> IO a) -> IO ()
+        compile from to ext generator = do
+            inps <- fmap (filter ((== ext) . takeExtension)) (listFilesRecursive from)
+            forM_ inps $ \inp -> do
+                let out = to </> replaceExtension (makeRelative from inp) "hs"
+                createDirectoryIfMissing True (takeDirectory out)
+                void (generator inp out)
+        
+        -- Lists every file under a folder, including files inside subfolders.
+        listFilesRecursive :: FilePath -> IO [FilePath]
+        listFilesRecursive root = do
+            entries <- listDirectory root
+            fmap concat $ forM entries $ \entry -> do
+                let path = root </> entry
+                isDir <- doesDirectoryExist path
+                if isDir then listFilesRecursive path else return [path]
 
 -- Runs a program and returns what the program prints.
 -- The test fails if the program exited with an error.

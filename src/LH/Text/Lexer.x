@@ -28,6 +28,8 @@ import qualified Data.Text as Text
 import qualified Data.Text.Read as Text (decimal)
 
 import LH.Data.SrcLoc
+import LH.Feature.Parser.Error 
+    (LHsTextError (LexicalError, UnclosedComment))
 import LH.Text.Parser.Monad
 import LH.Text.Token
 }
@@ -271,7 +273,13 @@ scanToken = do
         AlexSkip inp' _        -> setInput inp' >> scanToken
         AlexToken inp' len act -> do
             setInput inp'
-            act pos (Text.take len (aiText inp)) >>= maybe scanToken (return . LHsLexeme (spanOf pos len))
+            res <- act pos (Text.take len (aiText inp)) 
+            case res of
+                Nothing  -> scanToken
+                Just tok -> do
+                    let sp = spanOf pos len
+                    updateWithToken sp tok
+                    return (LHsLexeme sp tok)
     where
         -- | Handles the end of the input. We either have an 'UnclosedComment' error,
         --   or every layout block still open is closed before we produce the end-of-file token.

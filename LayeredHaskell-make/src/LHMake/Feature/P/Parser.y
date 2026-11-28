@@ -16,14 +16,6 @@ module LH.Feature.Parser (
     -- * Parsing
     parseProgram
     ) where
-
-import Data.Sequence (Seq, (<|))
-
-import LH.Data.SrcLoc
-import LH.Feature.AbsSyn
-import LH.Text.Lexer
-import LH.Text.Parser.Monad
-import LH.Text.Token
 }
 
 %name program Block

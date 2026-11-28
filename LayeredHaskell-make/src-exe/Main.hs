@@ -17,8 +17,8 @@ features :: FilePath
 features = "LayeredHaskell-make" </> "src" </> "LHMake" </> "Feature" </> "Features"
 
 -- | The destination directory for generated source files.
-dir :: FilePath
-dir = "src" </> "LH" </> "Feature"
+src :: FilePath
+src = "src"
 
 -- | The @LayeredHaskell-make@ executable facilitates superimposition.
 --   If @info@ is passed in as a command-line argument, 
@@ -30,7 +30,7 @@ main = do
     case args of
         [] -> do
             names <- getNames
-            superimpose names dir
+            superimpose names src
         -- General information
         ["help"]    -> help
         ["version"] -> version
@@ -46,7 +46,7 @@ main = do
         "set":names
             | null names -> do
                 putStrLn $ errLabel "One or more features must be enabled."
-                putStrLn $ hintLabel "For information on 'set', pass 'help' as an argument to LayeredHaskell-make."
+                putStrLn $ hintLabel "For information on `set', pass `help' as an argument to LayeredHaskell-make."
             | otherwise -> do
                 writeFile features (unlines names)
                 putStrLn $ infoLabel "Enabled just now: " ++ unwords names 
@@ -55,8 +55,8 @@ main = do
             putStrLn $ warnLabel "One or more command-line arguments were given, but they are not recognized."
             putStrLn $ warnLabel "Proceeding as if there were none..."
             names <- getNames
-            superimpose names dir
-            putStrLn $ hintLabel "For a list of all commands, pass 'help' as an argument to LayeredHaskell-make."
+            superimpose names src
+            putStrLn $ hintLabel "For a list of all commands, pass `help' as an argument to LayeredHaskell-make."
     where
         getNames = do
             args <- readFile features
@@ -73,7 +73,7 @@ help = do
     putStrLn "    ...    = c     :  ...all non-redundant feature combinations"
     putStrLn "    ...    = d     :  ...all feature dependencies and implications"
     putStrLn "set <args> : Enable a set of features"
-    putStrLn "     ....  = Any feature combination from 'ls c', separated by spaces"
+    putStrLn "     ....  = Any feature combination from `ls c', separated by spaces"
     putStrLn "show       : The set of currently enabled features"
     putStrLn "version    : The version"
 

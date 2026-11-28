@@ -79,6 +79,7 @@ library
         LH.Data.SrcLoc
         LH.Feature.AbsSyn
         LH.Feature.Parser
+        LH.Feature.Parser.Error
         LH.Text.Lexer
         LH.Text.Token
         LH.Text.Parser.Monad
@@ -89,6 +90,7 @@ library
     autogen-modules:
         LH.Feature.AbsSyn
         LH.Feature.Parser
+        LH.Feature.Parser.Error
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
