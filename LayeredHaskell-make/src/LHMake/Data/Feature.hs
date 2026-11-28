@@ -141,7 +141,8 @@ type Registry = Map FeatureName Feature
 registry :: Registry
 registry = Map.fromList
     [ ("E", feature "Expressions"
-                    ["E" </> "AbsSyn" <.> "hs"]
+                    [ "E" </> "AbsSyn" <.> "hs"
+                    , "E" </> "Parser" </> "Error" <.> "hs" ]
                     (Just ("E" </> "Parser" <.> "y"))
                     None
                     None

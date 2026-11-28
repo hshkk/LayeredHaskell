@@ -12,6 +12,7 @@ Stability   : experimental
 
 This module provides a parser for Layered Haskell programs with E enabled.
 -}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_HADDOCK hide #-}
 module LH.Feature.Parser (
     -- * Parsing
@@ -29,6 +30,7 @@ import qualified Data.Sequence as Seq
 import LH.Data.Error (quotes, (<+>))
 import LH.Data.SrcLoc
 import LH.Feature.AbsSyn
+import LH.Feature.Parser.Error
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token

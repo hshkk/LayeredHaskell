@@ -50,16 +50,28 @@ build = void (run "cabal" ["build", "lib:LayeredHaskell"])
 withBuild :: [FeatureName] -> (FilePath -> IO ()) -> IO ()
 withBuild args tests = withSystemTempDirectory "LayeredHaskell-test" $ \dir -> do
     superimpose args dir
-    files <- listFilesRecursive dir
-    -- For each Happy file, we execute Happy to produce a set of Haskell modules.
-    forM_ [file | file <- files, takeExtension file == ".y"] $ \y ->
-        run "happy" [dir </> y, "-g", "-a", "-c", "-o", dir </> replaceExtension y "hs"]
-    -- Then, we can run cabal on the driver file.
+    compile "src" dir ".x" $ \inp out ->
+        run "alex" [inp, "-g", "-o", out]
+    compile dir dir ".y" $ \inp out ->
+        run "happy" [inp, "-g", "-a", "-c", "-o", out]
     _ <- run "cabal"
-        [ "exec", "--", "ghc", "-O0", "-package", "LayeredHaskell", "-i" ++ dir, "-outputdir", dir </> "build"
-        , "-o", dir </> "driver" <.> exeExtension, "test/LH/Test/Text/Parser/Driver.hs" ]
+        [ "exec", "--", "ghc", "-O0", "-hide-package", "LayeredHaskell"
+        , "-i" ++ dir, "-isrc", "-outputdir", dir </> "build"
+        , "-o", dir </> "driver" <.> exeExtension
+        , "test/LH/Test/Text/Parser/Driver.hs" ]
     tests dir
     where
+        -- Finds every file with the given extension under `from', then applies a
+        -- function `k' to each file. (This is used for compiling Alex and Happy files.) 
+        -- The output is a Haskell file at the same relative path under `to'.
+        compile :: FilePath -> FilePath -> String -> (FilePath -> FilePath -> IO a) -> IO ()
+        compile from to ext generator = do
+            inps <- fmap (filter ((== ext) . takeExtension)) (listFilesRecursive from)
+            forM_ inps $ \inp -> do
+                let out = to </> replaceExtension (makeRelative from inp) "hs"
+                createDirectoryIfMissing True (takeDirectory out)
+                void (generator inp out)
+        
         -- Lists every file under a folder, including files inside subfolders.
         listFilesRecursive :: FilePath -> IO [FilePath]
         listFilesRecursive root = do

@@ -12,6 +12,7 @@ import Test.Hspec
 import qualified Data.Text as Text
 
 import LH.Data.SrcLoc
+import LH.Feature.Parser.Error
 import LH.Text.Lexer
 import LH.Text.Parser.Monad
 import LH.Text.Token
